@@ -7,7 +7,7 @@ Teoria de comunicaciones y señales
 2020
 */
 
-void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_muestras_hex,int num_bytes_totales,int num_muestras,int num_bits);
+void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_muestras_hex,int num_muestras,int num_bits);
 void regresar_arreglo_float(FILE* salida,float *arreglo_muestras_float,int num_muestras,int num_bytes_por_muestra,double normalizar);
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);
 
@@ -63,19 +63,23 @@ int main(int argc, char* argv[]){
     //Esta linea se puede comentar si quieres el archivo RAW
     fwrite(cabecera,sizeof(unsigned char),44,salida);
 
+    //Aqui vamos bien
 
     int num_muestras=metadata_cabecera[5];
     float arreglo_muestras_float[num_muestras];
-    char arreglo_muestras_hex[metadata_cabecera[2]];
+    int num_muestras_hex=num_muestras*(metadata_cabecera[4]/8);
+    printf("%d ",num_muestras_hex);
+    char arreglo_muestras_hex[num_muestras_hex];
 
     //Guarda las muestras en dos arreglos
     //arreglo_muestras_float -> Guarda las muestras con su valor en float dependiendo su configuracion 8,16 o 32 bits
     //arreglo_muestras_hex -> Guarda las muestras en su valor hexadecimal (1 byte en cada posicion del arreglo)
-    lectura_muestras(entrada,arreglo_muestras_float,arreglo_muestras_hex,metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
+    //printf("entrada, arreglo float, arreglo hex, %d byterate, %d num_muestras, %d tamaño bits muestras",metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
+    lectura_muestras(entrada,arreglo_muestras_float,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
 
     //Cierro el archivo de entrada
     fclose(entrada);
-
+    
     //Creamos un arreglo para los resultados, asi no modificamos o perdemos el arreglo original
     float arreglo_resultado[num_muestras];
     // Normalizar el valor entre 0 y 1 dependiendo el valor mayor que se consiga despues de operar cada una de las muestras
@@ -89,10 +93,10 @@ int main(int argc, char* argv[]){
     
 
     //Convolucion 1D
-    /*
-    Respuesta al impulso de un circuito RC con frecuencia de corte de 2000 hz y frecuencia de muestreo de 44100
-    Ver Calculos_convolucion.png  
-    */
+    
+    //Respuesta al impulso de un circuito RC con frecuencia de corte de 2000 hz y frecuencia de muestreo de 44100
+    //Ver Calculos_convolucion.png  
+    
      float convolucion[100]={1.000000, 0.752051, 0.565580, 0.425345, 0.319881, 0.240567, 0.180918, 0.136060, 0.102324, 0.076953, 
                             0.057872, 0.043523, 0.032731, 0.024616, 0.018512, 0.013922, 0.010470, 0.007874, 0.005922, 0.004453,
                             0.003349, 0.002519, 0.001894, 0.001425, 0.001071, 0.000806, 0.000606, 0.000456, 0.000343, 0.000258,
@@ -131,7 +135,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
             tamano_archivo<<=8;
             tamano_archivo+=cabecera[ind--];
         }
-        metadata_cabecera[6]=tamano_archivo;
+        
 
         //Canales que trabaja el archivo
         ind=22;
@@ -184,8 +188,10 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
         }
         metadata_cabecera[5]=num_muestras/(tamano_muestras/8);
 
+        metadata_cabecera[6]=tamano_archivo;
+
         if(flg==1){
-            printf("\t\n->Archivo de ENTRADA");
+            printf("\t\n->Archivo de ENTRADA\n");
             printf("\t\nTamano del archivo:  %d bytes",tamano_archivo);
             printf("\t\nCanales: %d",canales);
             printf("\t\nFrecuencia de muestreo (Sample rate): %d Hz",frecuencia_muestreo); 
@@ -199,10 +205,10 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     return 0;
 }
 
-void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_muestras_hex,int num_bytes_totales,int num_muestras,int num_bits){
+void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_muestras_hex,int num_muestras,int tam_muestras){
 
     int ind=0;
-    while(ind<num_bytes_totales){
+    while(ind<(num_muestras*((tam_muestras/8)))){
         arreglo_muestras_hex[ind]=fgetc(entrada);
         ind++;
     }   
@@ -211,12 +217,12 @@ void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_
     char aux=0x0;
     ind=0;
     
-    for(int i=0;i<=num_bytes_totales;i++){
-        if((i+1)%(num_bits/8)==0){
+    for(int i=0;i<=(num_muestras*((tam_muestras/8)));i++){
+        if((i+1)%(tam_muestras/8)==0){
             valor=arreglo_muestras_hex[i];
             valor<<=8;
             valor+=aux;
-            arreglo_muestras_float[ind]=valor/((pow(2,num_bits)/2)-1);
+            arreglo_muestras_float[ind]=valor/((pow(2,tam_muestras)/2)-1);
             valor=0x00; aux=0x0; ind++;
         }else{
             aux=arreglo_muestras_hex[i];
