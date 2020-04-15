@@ -1,6 +1,12 @@
 #include<stdio.h>
 #include<math.h>
 
+/*
+Zeth Alvarez Hernandez 
+Teoria de comunicaciones y señales
+2020
+*/
+
 void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_muestras_hex,int num_bytes_totales,int num_muestras,int num_bits);
 void regresar_arreglo_float(FILE* salida,float *arreglo_muestras_float,int num_muestras,int num_bytes_por_muestra,double normalizar);
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);
@@ -16,7 +22,7 @@ double convolucion1D(float* in, float* out, int dataSize, float* kernel, int ker
 int main(int argc, char* argv[]){
 
     unsigned char cabecera[44];
-    int metadata_cabecera[6]={0,0,0,0,0,0}; 
+    int metadata_cabecera[7]={0,0,0,0,0,0,0}; 
     /*
         Metadata de la cabecera
         [0] = canales
@@ -25,8 +31,9 @@ int main(int argc, char* argv[]){
         [3] = block_align
         [4] = tamaño en bytes de cada una de las muestras
         [5] = numero de muestras
+        [6] = tamaño del archivo
     */
-    int imprimir=0;   // 0 = imprime ; 1 = No imprime
+    int imprimir=1;   // 0 = imprime ; 1 = No imprime
 
     if(argc!=3){
         printf("Error! \nFaltan argumentos\n");
@@ -84,7 +91,7 @@ int main(int argc, char* argv[]){
     //Convolucion 1D
     /*
     Respuesta al impulso de un circuito RC con frecuencia de corte de 2000 hz y frecuencia de muestreo de 44100
-    Ver Calculos.png  
+    Ver Calculos_convolucion.png  
     */
      float convolucion[100]={1.000000, 0.752051, 0.565580, 0.425345, 0.319881, 0.240567, 0.180918, 0.136060, 0.102324, 0.076953, 
                             0.057872, 0.043523, 0.032731, 0.024616, 0.018512, 0.013922, 0.010470, 0.007874, 0.005922, 0.004453,
@@ -98,7 +105,6 @@ int main(int argc, char* argv[]){
                             0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000};
 
     normalizar=convolucion1D(arreglo_muestras_float,arreglo_resultado,num_muestras,convolucion,100);
-    
 
     //Regresa el arreglo_resultado al archivo de salida
     regresar_arreglo_float(salida,arreglo_resultado,num_muestras,metadata_cabecera[4],normalizar);
@@ -110,8 +116,6 @@ int main(int argc, char* argv[]){
 }
 
 
-
-
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg){
     int posicion_archivo=0;
 
@@ -120,8 +124,17 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
         posicion_archivo++;
     }
 
+        //Tamaño archivo
+        int ind=7;
+        long unsigned int tamano_archivo=0x0000;
+        while(ind>=4){
+            tamano_archivo<<=8;
+            tamano_archivo+=cabecera[ind--];
+        }
+        metadata_cabecera[6]=tamano_archivo;
+
         //Canales que trabaja el archivo
-        int ind=22;
+        ind=22;
         char b1=cabecera[ind];
         short canales=cabecera[++ind];
         canales<<=8;
@@ -173,6 +186,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 
         if(flg==1){
             printf("\t\n->Archivo de ENTRADA");
+            printf("\t\nTamano del archivo:  %d bytes",tamano_archivo);
             printf("\t\nCanales: %d",canales);
             printf("\t\nFrecuencia de muestreo (Sample rate): %d Hz",frecuencia_muestreo); 
             printf("\t\nTasa de bytes (Byte rate): %d",byte_rate);
@@ -231,7 +245,6 @@ void dividir_senal(float *arreglo_muestras,float *resultado,int num_muestras,int
         resultado[i]=arreglo_muestras[i]/n;
     }
 }
-
 
 
 double convolucion1D(float* in, float* out, int dataSize, float* kernel, int kernelSize){
