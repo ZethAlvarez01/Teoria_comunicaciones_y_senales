@@ -68,7 +68,6 @@ int main(int argc, char* argv[]){
     int num_muestras=metadata_cabecera[5];
     float arreglo_muestras_float[num_muestras];
     int num_muestras_hex=num_muestras*(metadata_cabecera[4]/8);
-    printf("%d ",num_muestras_hex);
     char arreglo_muestras_hex[num_muestras_hex];
 
     //Guarda las muestras en dos arreglos
