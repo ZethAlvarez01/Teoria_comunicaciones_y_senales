@@ -1,6 +1,10 @@
 #include<stdio.h>
 #include<math.h>
 
+#ifndef MPI
+#define M_PI 3.14159265358979323846
+#endif
+
 /*
 Zeth Alvarez Hernandez 
 Teoria de comunicaciones y señales
@@ -18,6 +22,8 @@ void dividir_senal(float *arreglo_muestras,float *resultado,int num_muestras,int
 // http://www.songho.ca/dsp/convolution/convolution.html?fbclid=IwAR2HsCXDnYEzytz8pdeQhGSD5r6FX3d-5EoHVtrvTavEBCqjxsemOuvcD2A#cpp_conv1d
 double convolucion1D(float* in, float* out, int dataSize, float* kernel, int kernelSize);
 
+//Aplicar TDF a una señal
+void tdf(FILE *salida, float *arreglo_muestras,int num_muestras,int num_bytes_por_muestra);
 
 int main(int argc, char* argv[]){
 
@@ -61,9 +67,8 @@ int main(int argc, char* argv[]){
 
     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
     //Esta linea se puede comentar si quieres el archivo RAW
-    fwrite(cabecera,sizeof(unsigned char),44,salida);
 
-    //Aqui vamos bien
+    //fwrite(cabecera,sizeof(unsigned char),44,salida);
 
     int num_muestras=metadata_cabecera[5];
     float arreglo_muestras_float[num_muestras];
@@ -96,7 +101,7 @@ int main(int argc, char* argv[]){
     //Respuesta al impulso de un circuito RC con frecuencia de corte de 2000 hz y frecuencia de muestreo de 44100
     //Ver Calculos_convolucion.png  
     
-     float convolucion[100]={1.000000, 0.752051, 0.565580, 0.425345, 0.319881, 0.240567, 0.180918, 0.136060, 0.102324, 0.076953, 
+     /*float convolucion[100]={1.000000, 0.752051, 0.565580, 0.425345, 0.319881, 0.240567, 0.180918, 0.136060, 0.102324, 0.076953, 
                             0.057872, 0.043523, 0.032731, 0.024616, 0.018512, 0.013922, 0.010470, 0.007874, 0.005922, 0.004453,
                             0.003349, 0.002519, 0.001894, 0.001425, 0.001071, 0.000806, 0.000606, 0.000456, 0.000343, 0.000258,
                             0.000194, 0.000146, 0.000110, 0.000082, 0.000062, 0.000047, 0.000035, 0.000026, 0.000020, 0.000015,
@@ -108,9 +113,13 @@ int main(int argc, char* argv[]){
                             0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000};
 
     normalizar=convolucion1D(arreglo_muestras_float,arreglo_resultado,num_muestras,convolucion,100);
+*/
+
+    tdf(salida, arreglo_muestras_float,num_muestras,metadata_cabecera[4]);
 
     //Regresa el arreglo_resultado al archivo de salida
-    regresar_arreglo_float(salida,arreglo_resultado,num_muestras,metadata_cabecera[4],normalizar);
+    //regresar_arreglo_float(salida,arreglo_resultado,num_muestras,metadata_cabecera[4],normalizar);
+
 
     //Cierro el archivo de salida
     fclose(salida);
@@ -289,4 +298,20 @@ double convolucion1D(float* in, float* out, int dataSize, float* kernel, int ker
     }
 
     return maximo;
+}
+
+void tdf(FILE *salida, float *arreglo_muestras,int num_muestras,int num_bytes_por_muestra){
+    float resultado[2]={0.0,0.0};
+
+    for(int i=0;i<num_muestras;i++){
+        for(int j=0;j<num_muestras;j++){
+            resultado[0]+=(arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras); // Reales
+            resultado[1]-=(arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras); // Imaginarios
+        }
+        printf("%d = { %f + %f i }  \n",i,resultado[0],resultado[1]);
+        resultado[0]=0;
+        resultado[1]=0;
+        regresar_arreglo_float(salida,resultado,2,num_bytes_por_muestra,1);
+    }
+
 }
