@@ -23,7 +23,7 @@ void dividir_senal(float *arreglo_muestras,float *resultado,int num_muestras,int
 double convolucion1D(float* in, float* out, int dataSize, float* kernel, int kernelSize);
 
 //Aplicar TDF a una señal
-void tdf(FILE *salida, float *arreglo_muestras,int num_muestras,int num_bytes_por_muestra);
+void tdf(FILE *salida, float *arreglo_muestras,float *reales,float *imagin,int num_muestras,int num_bytes_por_muestra);
 
 int main(int argc, char* argv[]){
 
@@ -41,8 +41,11 @@ int main(int argc, char* argv[]){
     */
     int imprimir=1;   // 0 = imprime ; 1 = No imprime
 
-    if(argc!=3){
+    if(argc<3){
         printf("Error! \nFaltan argumentos\n");
+        return 0;
+    }else if (argc>3){
+        printf("Error! \nSobran argumentos\n");
         return 0;
     }
 
@@ -114,15 +117,30 @@ int main(int argc, char* argv[]){
 
     normalizar=convolucion1D(arreglo_muestras_float,arreglo_resultado,num_muestras,convolucion,100);
 */
+    float reales[num_muestras];
+    float imagin[num_muestras];
 
-    tdf(salida, arreglo_muestras_float,num_muestras,metadata_cabecera[4]);
+    tdf(salida,arreglo_muestras_float,reales,imagin,num_muestras,metadata_cabecera[4]);
+
+    int m=0,n=0;
 
     //Regresa el arreglo_resultado al archivo de salida
-    //regresar_arreglo_float(salida,arreglo_resultado,num_muestras,metadata_cabecera[4],normalizar);
-
-
+    for(int i=0;i<(num_muestras*2);i++){
+        float muestra[1];
+        if(i%2==0){
+            muestra[0]=reales[m];
+            m++;
+        }else{
+            muestra[0]=imagin[n];
+            n++;
+        }
+        regresar_arreglo_float(salida,muestra,1,metadata_cabecera[4],normalizar);
+    }
+    
+   
     //Cierro el archivo de salida
     fclose(salida);
+
 
     return 0;   
 }
@@ -246,7 +264,7 @@ void regresar_arreglo_float(FILE* salida,float *arreglo_muestras_float,int num_m
         unsigned long int aux=((arreglo_muestras_float[i])*((pow(2,(num_bytes_por_muestra))/2)-1))/normalizar;
         unsigned char regresar[4]={0x00,0x00,0x00,0x00};
         for(int j=0;j<num_bytes_por_muestra/8;j++){
-            regresar[j]=(unsigned char) (aux>>(8*j));
+            regresar[j]=(unsigned char) (aux>>(8*j)); 
         }
         fwrite(regresar,1,num_bytes_por_muestra/8,salida);
     }
@@ -300,18 +318,14 @@ double convolucion1D(float* in, float* out, int dataSize, float* kernel, int ker
     return maximo;
 }
 
-void tdf(FILE *salida, float *arreglo_muestras,int num_muestras,int num_bytes_por_muestra){
-    float resultado[2]={0.0,0.0};
+void tdf(FILE *salida, float *arreglo_muestras,float *reales,float *imagin,int num_muestras,int num_bytes_por_muestra){
 
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
-            resultado[0]+=(arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras); // Reales
-            resultado[1]-=(arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras); // Imaginarios
+            reales[i]+=(arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras); // Reales
+            imagin[i]-=(arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras); // Imaginarios
         }
-        printf("%d = { %f + %f i }  \n",i,resultado[0],resultado[1]);
-        resultado[0]=0;
-        resultado[1]=0;
-        regresar_arreglo_float(salida,resultado,2,num_bytes_por_muestra,1);
+        //printf("%d = { %f + %f j }\n",i,reales[i],imagin[i]);
     }
 
 }
