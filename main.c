@@ -347,6 +347,7 @@ void tdf(float *arreglo_muestras,float *reales,float *imagin,int num_muestras){
         if(imagin[i] != imagin[i]){
             imagin[i]=0.0;
         }
+
         //printf("%d = { %f + %f j }  \n",i,reales[i], imagin[i]);
     }
 }
@@ -355,10 +356,16 @@ void tdfi(float *reales,float *imagin,float *regreso_tdfi,int num_muestras){
     //int contador=0;
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
-            regreso_tdfi[i]+=((((reales[j])*cos((2*M_PI*i*j)/num_muestras))-((imagin[j])*sin((2*M_PI*i*j)/num_muestras)))/num_muestras);
+            regreso_tdfi[i]+=((((reales[j])*cos((2*M_PI*i*j)/num_muestras))+((imagin[j])*sin((2*M_PI*i*j)/num_muestras)))/num_muestras);
         }
         if(regreso_tdfi[i] != regreso_tdfi[i]){
             regreso_tdfi[i]=0.0;
+        }
+        if(regreso_tdfi[i]>1){
+            regreso_tdfi[i]=1.0;
+        }
+        if(regreso_tdfi[i]<-1){
+            regreso_tdfi[i]=-1.0;
         }
         //printf("%d = { %f }  \n",i,regreso_tdfi[i]);
     }
