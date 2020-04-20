@@ -23,7 +23,10 @@ void dividir_senal(float *arreglo_muestras,float *resultado,int num_muestras,int
 double convolucion1D(float* in, float* out, int dataSize, float* kernel, int kernelSize);
 
 //Aplicar TDF a una señal
-void tdf(FILE *salida, float *arreglo_muestras,float *reales,float *imagin,int num_muestras,int num_bytes_por_muestra);
+void tdf(float *arreglo_muestras,float *reales,float *imagin,int num_muestras);
+
+//Aplicar TDFI a una señal
+void tdfi(float *reales,float *imagin,float *regreso_tdfi,int num_muestras);
 
 int main(int argc, char* argv[]){
 
@@ -39,7 +42,8 @@ int main(int argc, char* argv[]){
         [5] = numero de muestras
         [6] = tamaño del archivo
     */
-    int imprimir=1;   // 0 = imprime ; 1 = No imprime
+   //Imprime o no imprime los datos de la cabecera
+    int imprimir=0;   // 0 = imprime ; 1 = No imprime
 
     if(argc<3){
         printf("Error! \nFaltan argumentos\n");
@@ -71,7 +75,7 @@ int main(int argc, char* argv[]){
     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
     //Esta linea se puede comentar si quieres el archivo RAW
 
-    //fwrite(cabecera,sizeof(unsigned char),44,salida);
+    fwrite(cabecera,sizeof(unsigned char),44,salida);
 
     int num_muestras=metadata_cabecera[5];
     float arreglo_muestras_float[num_muestras];
@@ -117,13 +121,26 @@ int main(int argc, char* argv[]){
 
     normalizar=convolucion1D(arreglo_muestras_float,arreglo_resultado,num_muestras,convolucion,100);
 */
+
+    //Transformada discreta de Fourier y Trasnsformada discreta de Fourier Inversa
+    // TDF y TDFI pa' los cuates
+
     float reales[num_muestras];
     float imagin[num_muestras];
+    float regreso_tdfi[num_muestras];
 
-    tdf(salida,arreglo_muestras_float,reales,imagin,num_muestras,metadata_cabecera[4]);
+    for(int i=0;i<num_muestras;i++){
+        regreso_tdfi[i]=0.0;
+    }
 
-    int m=0,n=0;
+    tdf(arreglo_muestras_float,reales,imagin,num_muestras);
 
+    tdfi(reales,imagin,regreso_tdfi,num_muestras);
+
+    //Regresa el arreglo_resultado al archivo de salida
+    regresar_arreglo_float(salida,regreso_tdfi,num_muestras,metadata_cabecera[4],normalizar);
+
+    /*
     //Regresa el arreglo_resultado al archivo de salida
     for(int i=0;i<(num_muestras*2);i++){
         float muestra[1];
@@ -135,7 +152,7 @@ int main(int argc, char* argv[]){
             n++;
         }
         regresar_arreglo_float(salida,muestra,1,metadata_cabecera[4],normalizar);
-    }
+    }*/
     
    
     //Cierro el archivo de salida
@@ -318,14 +335,31 @@ double convolucion1D(float* in, float* out, int dataSize, float* kernel, int ker
     return maximo;
 }
 
-void tdf(FILE *salida, float *arreglo_muestras,float *reales,float *imagin,int num_muestras,int num_bytes_por_muestra){
-
+void tdf(float *arreglo_muestras,float *reales,float *imagin,int num_muestras){
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
             reales[i]+=(arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras); // Reales
             imagin[i]-=(arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras); // Imaginarios
         }
-        //printf("%d = { %f + %f j }\n",i,reales[i],imagin[i]);
+        if(reales[i] != reales[i]){
+            reales[i]=0.0;
+        }
+        if(imagin[i] != imagin[i]){
+            imagin[i]=0.0;
+        }
+        //printf("%d = { %f + %f j }  \n",i,reales[i], imagin[i]);
     }
+}
 
+void tdfi(float *reales,float *imagin,float *regreso_tdfi,int num_muestras){
+    //int contador=0;
+    for(int i=0;i<num_muestras;i++){
+        for(int j=0;j<num_muestras;j++){
+            regreso_tdfi[i]+=((((reales[j])*cos((2*M_PI*i*j)/num_muestras))-((imagin[j])*sin((2*M_PI*i*j)/num_muestras)))/num_muestras);
+        }
+        if(regreso_tdfi[i] != regreso_tdfi[i]){
+            regreso_tdfi[i]=0.0;
+        }
+        //printf("%d = { %f }  \n",i,regreso_tdfi[i]);
+    }
 }
