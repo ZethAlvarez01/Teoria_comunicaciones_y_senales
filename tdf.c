@@ -13,7 +13,7 @@ Teoria de comunicaciones y señales
 */
 
 void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int num_bits);
-void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra,double normalizar);
+void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra);
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]){
     double arreglo_imaginarios[num_muestras];
 
     // Normalizar el valor entre 0 y 1 dependiendo el valor mayor que se consiga despues de operar cada una de las muestras
-    double normalizar=0.5; 
+    double normalizar=1; 
 
     //Partir señal a la mitad
     //Arreglo de muestras - Arreglo para almacenar el resultadom - Numero de muestras - Por cuanto dividir la señal
@@ -176,8 +176,8 @@ int main(int argc, char* argv[]){
     
     // tdfi(arreglo_reales,arreglo_imaginarios,arreglo_resultado,num_muestras);
 
-    // //Mete todo a reales
-    // for(int i=0;i<num_muestras/2;i++){
+    // // //Mete todo a reales
+    // for(int i=0;i<num_muestras;i++){
     //     arreglo_reales[i]=arreglo_resultado[i];
     //     arreglo_imaginarios[i]=0.0;
     // }
@@ -194,7 +194,7 @@ int main(int argc, char* argv[]){
             muestra[0]=arreglo_imaginarios[n];
             n++;
         }
-        regresar_arreglo_double(salida,muestra,1,metadata_cabecera[4],normalizar);
+        regresar_arreglo_double(salida,muestra,1,metadata_cabecera[4]);
     }
    
     //Cierro el archivo de salida
@@ -317,10 +317,10 @@ void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arregl
 
 }
 
-void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra,double normalizar){
+void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra){
 
    for (int i=0;i<num_muestras;i++){
-        unsigned long int aux=((arreglo_muestras_double[i])*((pow(2,(num_bytes_por_muestra))/2)-1))/normalizar;
+        unsigned long int aux=((arreglo_muestras_double[i])*((pow(2,(num_bytes_por_muestra))/2)-1));
         unsigned char regresar[4]={0x00,0x00,0x00,0x00};
         for(int j=0;j<num_bytes_por_muestra/8;j++){
             regresar[j]=(unsigned char) (aux>>(8*j)); 
@@ -376,12 +376,13 @@ double convolucion1D(double* in, double* out, int dataSize, double* kernel, int 
 }
 
 void tdf(double *arreglo_muestras,double *reales,double *imagin,int num_muestras){
+    
     int pos=0;
 
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
-            reales[i]+=((arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras))/num_muestras; // Reales
-            imagin[i]-=((arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras))/num_muestras; // Imaginarios
+            reales[i]+=((arreglo_muestras[j])*2*cos((2*M_PI*i*j)/num_muestras))/num_muestras; // Reales
+            imagin[i]+=((-1)*((arreglo_muestras[j])*2*sin((2*M_PI*i*j)/num_muestras))/num_muestras); // Imaginarios
         }
         if(reales[i] != reales[i]){
             reales[i]=0.0;
@@ -405,7 +406,7 @@ void tdfi(double *reales,double *imagin,double *regreso_tdfi,int num_muestras){
     int pos=0;
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
-            regreso_tdfi[i]+=((((reales[j])*cos((2*M_PI*i*j)/num_muestras))+((imagin[j])*sin((2*M_PI*i*j)/num_muestras))));
+            regreso_tdfi[i]+=((((reales[j])*cos((2*M_PI*i*j)/num_muestras)/2)+((imagin[j])*sin((2*M_PI*i*j)/num_muestras)/2)));
         }
         if(regreso_tdfi[i] != regreso_tdfi[i]){
             regreso_tdfi[i]=0.0;
@@ -416,12 +417,12 @@ void tdfi(double *reales,double *imagin,double *regreso_tdfi,int num_muestras){
         if(regreso_tdfi[i]<-1){
             regreso_tdfi[i]=-1;
         }
-        // int aux=(i*100)/num_muestras;
-        // if(pos!=aux){
-        //     system("cls");
-        //     printf("\nCargando TDFI... %d %%\n",aux+1);
-        //     pos=aux;
-        // }
+        int aux=(i*100)/num_muestras;
+        if(pos!=aux){
+            system("cls");
+            printf("\nCargando TDFI... %d %%\n",aux+1);
+            pos=aux;
+        }
         //printf("%d = { %lf }  \n",i,regreso_tdfi[i]);
     }
 }
