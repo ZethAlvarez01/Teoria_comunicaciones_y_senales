@@ -381,8 +381,8 @@ void tdf(double *arreglo_muestras,double *reales,double *imagin,int num_muestras
 
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
-            reales[i]+=((arreglo_muestras[j])*2*cos((2*M_PI*i*j)/num_muestras))/num_muestras; // Reales
-            imagin[i]+=((-1)*((arreglo_muestras[j])*2*sin((2*M_PI*i*j)/num_muestras))/num_muestras); // Imaginarios
+            reales[i]+=((arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras))/num_muestras; // Reales
+            imagin[i]+=((-1)*((arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras))/num_muestras); // Imaginarios
         }
         if(reales[i] != reales[i]){
             reales[i]=0.0;
