@@ -1,4 +1,5 @@
-#include<stdio.h>
+#include<stdio.h>  
+#include <stdlib.h>
 #include<math.h>
 
 #ifndef MPI
@@ -11,24 +12,24 @@ Teoria de comunicaciones y señales
 2020
 */
 
-void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_muestras_hex,int num_muestras,int num_bits);
-void regresar_arreglo_float(FILE* salida,float *arreglo_muestras_float,int num_muestras,int num_bytes_por_muestra,double normalizar);
+void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int num_bits);
+void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra);
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
 
 //Dividir una señal n veces  
-void dividir_senal(float *arreglo_muestras,float *resultado,int num_muestras,int n);
+void dividir_senal(double *arreglo_muestras,double *resultado,int num_muestras,int n);
 
 // Link de esta funcion el cual nos muestra los algoritmos para la convolucion discreta
 // http://www.songho.ca/dsp/convolution/convolution.html?fbclid=IwAR2HsCXDnYEzytz8pdeQhGSD5r6FX3d-5EoHVtrvTavEBCqjxsemOuvcD2A#cpp_conv1d
-double convolucion1D(float* in, float* out, int dataSize, float* kernel, int kernelSize);
+double convolucion1D(double* in, double* out, int dataSize, double* kernel, int kernelSize);
 
 //Aplicar TDF a una señal
-void tdf(float *arreglo_muestras,float *reales,float *imagin,int num_muestras);
+void tdf(double *arreglo_muestras,double *reales,double *imagin,int num_muestras);
 
 //Aplicar TDFI a una señal
-void tdfi(float *reales,float *imagin,float *regreso_tdfi,int num_muestras);
+void tdfi(double *reales,double *imagin,double *regreso_tdfi,int num_muestras);
 
 int main(int argc, char* argv[]){
 
@@ -79,11 +80,13 @@ int main(int argc, char* argv[]){
         que la componen 
     */
 
+    //Aqui modifico la cabecera para TDF y TDFI
+    // Si es canal mono la cambia a stereo si es stereo la deja igual
     unsigned char cabecera_copia[44];
 
     copiar_cabecera(cabecera,cabecera_copia);
 
-    //if(metadata_cabecera[0] == 2){
+    if(metadata_cabecera[0] != 2){
         //Edito el canal
         editar_cabecera(cabecera_copia,0,2);
 
@@ -98,7 +101,7 @@ int main(int argc, char* argv[]){
 
         //Edito ByteRate
         editar_cabecera(cabecera_copia,2,metadata_cabecera[1]*2*(metadata_cabecera[4]/8));
-   // }
+    }
 
 
     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
@@ -107,21 +110,25 @@ int main(int argc, char* argv[]){
     fwrite(cabecera_copia,sizeof(unsigned char),44,salida);
 
     int num_muestras=metadata_cabecera[5];
-    float arreglo_muestras_float[num_muestras];
+    double arreglo_muestras_double[num_muestras];
     int num_muestras_hex=num_muestras*(metadata_cabecera[4]/8);
     char arreglo_muestras_hex[num_muestras_hex];
 
     //Guarda las muestras en dos arreglos
-    //arreglo_muestras_float -> Guarda las muestras con su valor en float dependiendo su configuracion 8,16 o 32 bits
+    //arreglo_muestras_double -> Guarda las muestras con su valor en double dependiendo su configuracion 8,16 o 32 bits
     //arreglo_muestras_hex -> Guarda las muestras en su valor hexadecimal (1 byte en cada posicion del arreglo)
-    //printf("entrada, arreglo float, arreglo hex, %d byterate, %d num_muestras, %d tamaño bits muestras",metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
-    lectura_muestras(entrada,arreglo_muestras_float,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
+    //printf("entrada, arreglo double, arreglo hex, %d byterate, %d num_muestras, %d tamaño bits muestras",metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
+    lectura_muestras(entrada,arreglo_muestras_double,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
 
     //Cierro el archivo de entrada
     fclose(entrada);
     
     //Creamos un arreglo para los resultados, asi no modificamos o perdemos el arreglo original
-    float arreglo_resultado[num_muestras];
+    double arreglo_resultado[num_muestras];
+    //Arrego resultados para reales e imaginarios
+    double arreglo_reales[num_muestras];
+    double arreglo_imaginarios[num_muestras];
+
     // Normalizar el valor entre 0 y 1 dependiendo el valor mayor que se consiga despues de operar cada una de las muestras
     double normalizar=1; 
 
@@ -129,7 +136,7 @@ int main(int argc, char* argv[]){
     //Arreglo de muestras - Arreglo para almacenar el resultadom - Numero de muestras - Por cuanto dividir la señal
 
     
-    //dividir_senal(arreglo_muestras_float,arreglo_resultado,num_muestras,2);
+    //dividir_senal(arreglo_muestras_double,arreglo_resultado,num_muestras,2);
     
 
     //Convolucion 1D
@@ -137,7 +144,7 @@ int main(int argc, char* argv[]){
     //Respuesta al impulso de un circuito RC con frecuencia de corte de 2000 hz y frecuencia de muestreo de 44100
     //Ver Calculos_convolucion.png  
     
-     /*float convolucion[100]={1.000000, 0.752051, 0.565580, 0.425345, 0.319881, 0.240567, 0.180918, 0.136060, 0.102324, 0.076953, 
+     /*double convolucion[100]={1.000000, 0.752051, 0.565580, 0.425345, 0.319881, 0.240567, 0.180918, 0.136060, 0.102324, 0.076953, 
                             0.057872, 0.043523, 0.032731, 0.024616, 0.018512, 0.013922, 0.010470, 0.007874, 0.005922, 0.004453,
                             0.003349, 0.002519, 0.001894, 0.001425, 0.001071, 0.000806, 0.000606, 0.000456, 0.000343, 0.000258,
                             0.000194, 0.000146, 0.000110, 0.000082, 0.000062, 0.000047, 0.000035, 0.000026, 0.000020, 0.000015,
@@ -148,42 +155,51 @@ int main(int argc, char* argv[]){
                             0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
                             0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000};
 
-    normalizar=convolucion1D(arreglo_muestras_float,arreglo_resultado,num_muestras,convolucion,100);
+    normalizar=convolucion1D(arreglo_muestras_double,arreglo_resultado,num_muestras,convolucion,100);
 */
 
     //Transformada discreta de Fourier y Trasnsformada discreta de Fourier Inversa
     // TDF y TDFI pa' los cuates
 
-    float reales[num_muestras];
-    float imagin[num_muestras];
+    tdf(arreglo_muestras_double,arreglo_reales,arreglo_imaginarios,num_muestras);
 
-    tdf(arreglo_muestras_float,reales,imagin,num_muestras);
+    // int m=0;
+    // int n=0;
 
-    tdfi(reales,imagin,arreglo_resultado,num_muestras);
+    // for(int i=0;i<num_muestras;i++){
+    //     if(i%2==0){
+    //         arreglo_reales[m]=arreglo_muestras_double[i];
+    //         m++;
+    //     }else{
+    //         arreglo_imaginarios[n]=arreglo_muestras_double[i];
+    //         n++;
+    //     }
+    // }
+    
+    // tdfi(arreglo_reales,arreglo_imaginarios,arreglo_resultado,num_muestras);
 
-    //Regresa el arreglo_resultado al archivo de salida
-    //regresar_arreglo_float(salida,arreglo_muestras_float,num_muestras,metadata_cabecera[4],normalizar);
-
-   for(int i=0;i<num_muestras;i++){
-        reales[i]=arreglo_resultado[i];
-        imagin[i]=0.0;
-    }
-
-    //Regresa el arreglo_resultado al archivo de salida
+    // // //Mete todo a reales
+    // for(int i=0;i<num_muestras;i++){
+    //     arreglo_reales[i]=arreglo_resultado[i];
+    //     arreglo_imaginarios[i]=0.0;
+    // }
+    
+    //Regresar valores reales e imaginarios intercalandolos
     int m=0;
     int n=0;
-    for(int i=0;i<(num_muestras*2);i++){
-        float muestra[1];
+    int total_muestras_stereo=num_muestras*2;
+    double muestra[1];
+
+    for(int i=0;i<total_muestras_stereo;i++){
         if(i%2==0){
-            muestra[0]=reales[m];
+            muestra[0]=arreglo_reales[m];
             m++;
         }else{
-            muestra[0]=imagin[n];
+            muestra[0]=arreglo_imaginarios[n];
             n++;
         }
-        regresar_arreglo_float(salida,muestra,1,metadata_cabecera[4],normalizar);
+        regresar_arreglo_double(salida,muestra,1,metadata_cabecera[4]);
     }
-    
    
     //Cierro el archivo de salida
     fclose(salida);
@@ -194,6 +210,7 @@ int main(int argc, char* argv[]){
 
 
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg){
+    
     int posicion_archivo=0;
 
     while(posicion_archivo<44){
@@ -201,87 +218,95 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
         posicion_archivo++;
     }
 
-        //Tamaño archivo
-        int ind=7;
-        long unsigned int tamano_archivo=0x0000;
-        while(ind>=4){
-            tamano_archivo<<=8;
-            tamano_archivo+=cabecera[ind--];
-        }
-        
+    //Tamaño archivo
+    int ind=7;
+    long unsigned int tamano_archivo=0x0000;
+    while(ind>=4){
+        tamano_archivo<<=8;
+        tamano_archivo+=cabecera[ind--];
+    }
+    
 
-        //Canales que trabaja el archivo
-        ind=22;
-        char b1=cabecera[ind];
-        short canales=cabecera[++ind];
-        canales<<=8;
-        canales+=b1;
-        metadata_cabecera[0]=canales;
-        
-        //Frecuencia de muestreo
-        ind=27;
-        long unsigned int frecuencia_muestreo=0x0000;
-        while(ind>=24){
-            frecuencia_muestreo<<=8;
-            frecuencia_muestreo+=cabecera[ind--];
-        }
-        metadata_cabecera[1]=frecuencia_muestreo;
+    //Canales que trabaja el archivo
+    ind=22;
+    char b1=cabecera[ind];
+    short canales=cabecera[++ind];
+    canales<<=8;
+    canales+=b1;
+    metadata_cabecera[0]=canales;
+    
+    //Frecuencia de muestreo
+    ind=27;
+    long unsigned int frecuencia_muestreo=0x0000;
+    while(ind>=24){
+        frecuencia_muestreo<<=8;
+        frecuencia_muestreo+=cabecera[ind--];
+    }
+    metadata_cabecera[1]=frecuencia_muestreo;
 
-        //Tasa de bytes
-        ind=31;
-        long unsigned int byte_rate=0x0000;
-        while(ind>=28){
-            byte_rate<<=8;
-            byte_rate+=cabecera[ind--];
-        }
-        metadata_cabecera[2]=byte_rate;
+    //Tasa de bytes
+    ind=31;
+    long unsigned int byte_rate=0x0000;
+    while(ind>=28){
+        byte_rate<<=8;
+        byte_rate+=cabecera[ind--];
+    }
+    metadata_cabecera[2]=byte_rate;
 
-        // Block align
-        ind=32;
-        b1=cabecera[ind];
-        short block_align=cabecera[++ind];
-        block_align<<=8;
-        block_align+=b1;
-        metadata_cabecera[3]=block_align;
+    // Block align
+    ind=32;
+    b1=cabecera[ind];
+    short block_align=cabecera[++ind];
+    block_align<<=8;
+    block_align+=b1;
+    metadata_cabecera[3]=block_align;
 
-        // Bytes per samble (Tamaño de las muestras)
-        ind=34;
-        b1=cabecera[ind];
-        short tamano_muestras=cabecera[++ind];
-        tamano_muestras<<=8;
-        tamano_muestras+=b1;
-        metadata_cabecera[4]=tamano_muestras;
+    // Bytes per samble (Tamaño de las muestras)
+    ind=34;
+    b1=cabecera[ind];
+    short tamano_muestras=cabecera[++ind];
+    tamano_muestras<<=8;
+    tamano_muestras+=b1;
+    metadata_cabecera[4]=tamano_muestras;
 
-        //Numero de  muestras
-        ind=43;
-        long unsigned int num_muestras=0x0000;
-        while(ind>=40){
-            num_muestras<<=8;
-            num_muestras+=cabecera[ind--];
-        }
-        metadata_cabecera[5]=num_muestras/(tamano_muestras/8);
+    int bytes_x_muestra=tamano_muestras/8;
 
-        metadata_cabecera[6]=tamano_archivo;
+    //Numero de  muestras
+    ind=43;
+    unsigned long int num_muestras=0x0000;
+    
+    while(ind>=40){
+        num_muestras<<=8;
+        num_muestras+=cabecera[ind--];
+    }
+    metadata_cabecera[5]=num_muestras/bytes_x_muestra;
 
-        if(flg==1){
-            printf("\t\n->Archivo de ENTRADA\n");
-            printf("\t\nTamano del archivo:  %d bytes",tamano_archivo);
-            printf("\t\nCanales: %d",canales);
-            printf("\t\nFrecuencia de muestreo (Sample rate): %d Hz",frecuencia_muestreo); 
-            printf("\t\nTasa de bytes (Byte rate): %d",byte_rate);
-            printf("\t\nBlock Align: %d",block_align);
-            printf("\t\nTamano de las muestras: %d bytes",tamano_muestras);
-            printf("\t\nNumero de muestras: %d ",num_muestras/(tamano_muestras/8));
-            printf("\n\n");    
-        }
+    metadata_cabecera[6]=tamano_archivo;
+
+    if(flg==1){
+        printf("\t\n->Archivo de ENTRADA\n");
+        printf("\t\nTamano del archivo:  %d bytes",tamano_archivo);
+        printf("\t\nCanales: %d",canales);
+        printf("\t\nFrecuencia de muestreo (Sample rate): %d Hz",frecuencia_muestreo); 
+        printf("\t\nTasa de bytes (Byte rate): %d",byte_rate);
+        printf("\t\nBlock Align: %d",block_align);
+        printf("\t\nTamano de las muestras: %d bytes",tamano_muestras);
+        printf("\t\nNumero de muestras: %d ",num_muestras/bytes_x_muestra);
+        printf("\n\n");    
+    }
 
     return 0;
 }
 
-void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_muestras_hex,int num_muestras,int tam_muestras){
+void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int tam_muestras){
 
     int ind=0;
-    while(ind<(num_muestras*((tam_muestras/8)))){
+    int bytes_x_muestra=tam_muestras/8;
+    int leer_muestras=num_muestras*bytes_x_muestra;
+    int total_bytes=num_muestras*bytes_x_muestra;
+    double normalizar_signed=((pow(2,tam_muestras)/2)-1);
+
+    while(ind<leer_muestras){
         arreglo_muestras_hex[ind]=fgetc(entrada);
         ind++;
     }   
@@ -290,12 +315,12 @@ void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_
     char aux=0x0;
     ind=0;
     
-    for(int i=0;i<=(num_muestras*((tam_muestras/8)));i++){
-        if((i+1)%(tam_muestras/8)==0){
+    for(int i=0;i<=total_bytes;i++){
+        if((i+1)%(bytes_x_muestra)==0){
             valor=arreglo_muestras_hex[i];
             valor<<=8;
             valor+=aux;
-            arreglo_muestras_float[ind]=valor/((pow(2,tam_muestras)/2)-1);
+            arreglo_muestras_double[ind]=valor/normalizar_signed;
             valor=0x00; aux=0x0; ind++;
         }else{
             aux=arreglo_muestras_hex[i];
@@ -305,28 +330,33 @@ void lectura_muestras(FILE *entrada,float *arreglo_muestras_float,char *arreglo_
 
 }
 
-void regresar_arreglo_float(FILE* salida,float *arreglo_muestras_float,int num_muestras,int num_bytes_por_muestra,double normalizar){
+void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra){
+   
+   double potencia=((pow(2,(num_bytes_por_muestra))/2)-1);
+   int bytes_x_muestra=num_bytes_por_muestra/8;
+   unsigned char regresar[4]={0x00,0x00,0x00,0x00};
 
    for (int i=0;i<num_muestras;i++){
-        unsigned long int aux=((arreglo_muestras_float[i])*((pow(2,(num_bytes_por_muestra))/2)-1))/normalizar;
-        unsigned char regresar[4]={0x00,0x00,0x00,0x00};
-        for(int j=0;j<num_bytes_por_muestra/8;j++){
+        unsigned long int aux=arreglo_muestras_double[i]*potencia;
+
+        for(int j=0;j<bytes_x_muestra;j++){
             regresar[j]=(unsigned char) (aux>>(8*j)); 
         }
-        fwrite(regresar,1,num_bytes_por_muestra/8,salida);
+
+        fwrite(regresar,1,bytes_x_muestra,salida);
     }
    
 }
 
 
-void dividir_senal(float *arreglo_muestras,float *resultado,int num_muestras,int n){
+void dividir_senal(double *arreglo_muestras,double *resultado,int num_muestras,int n){
     for(int i=0;i<num_muestras;i++){
         resultado[i]=arreglo_muestras[i]/n;
     }
 }
 
 
-double convolucion1D(float* in, float* out, int dataSize, float* kernel, int kernelSize){
+double convolucion1D(double* in, double* out, int dataSize, double* kernel, int kernelSize){
     int i, j, k;
     double maximo=0, val_abs=0;
 
@@ -363,37 +393,65 @@ double convolucion1D(float* in, float* out, int dataSize, float* kernel, int ker
     return maximo;
 }
 
-void tdf(float *arreglo_muestras,float *reales,float *imagin,int num_muestras){
+void tdf(double *arreglo_muestras,double *reales,double *imagin,int num_muestras){
+    
+    int pos=0;
+
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
-            reales[i]+=(arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras); // Reales
-            imagin[i]-=(arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras); // Imaginarios
+            reales[i]+=((arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras))/num_muestras; // Reales
+            imagin[i]-=((arreglo_muestras[j])*sin((2*M_PI*i*j)/num_muestras))/num_muestras; // Imaginarios
         }
+        //Por si el calculo resulta en un valor mayor a 1
         if(reales[i] != reales[i]){
             reales[i]=0.0;
-        }        if(imagin[i] != imagin[i]){
+        }        
+        //Por si el calculo resulta en un valor menor a -1
+        if(imagin[i] != imagin[i]){
             imagin[i]=0.0;
         }
-        printf("%d = { %f + %f j }  \n",i,reales[i], imagin[i]);
+
+        //Porcentaje de carga para el calculo de la TDF
+        //Borrar al presentar con Aldana
+        int aux=(i*100)/num_muestras;
+        if(pos!=aux){
+            system("cls");
+            printf("\nCargando TDF... %d %%\n",aux+1);
+            pos=aux;
+        }
+        //Imprime los valores reales e imaginarios de cada una de las muestras
+        //printf("%d = { %lf + %lf j }  \n",i,reales[i], imagin[i]);
     }
 }
 
-void tdfi(float *reales,float *imagin,float *regreso_tdfi,int num_muestras){
-    //int contador=0;
+void tdfi(double *reales,double *imagin,double *regreso_tdfi,int num_muestras){
+    int pos=0;
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
-            regreso_tdfi[i]+=((((reales[j])*cos((2*M_PI*i*j)/num_muestras))+((imagin[j])*sin((2*M_PI*i*j)/num_muestras)))/num_muestras);
+            regreso_tdfi[i]+=((((reales[j])*cos((2*M_PI*i*j)/num_muestras))+((imagin[j])*sin((2*M_PI*i*j)/num_muestras))));
         }
+        //Por si el calculo resulta en un valor NaN
         if(regreso_tdfi[i] != regreso_tdfi[i]){
             regreso_tdfi[i]=0.0;
         }
+        //Por si el calculo resulta en un valor mayor a 1
         if(regreso_tdfi[i]>1){
-            regreso_tdfi[i]=1.0;
+            regreso_tdfi[i]=1;
         }
+        //Por si el calculo resulta en un valor menor a -1
         if(regreso_tdfi[i]<-1){
-            regreso_tdfi[i]=-1.0;
+            regreso_tdfi[i]=-1;
         }
-        printf("%d = { %f }  \n",i,regreso_tdfi[i]);
+        //Porcentaje de carga para el calculo de la TDF
+        //Borrar al presentar con Aldana
+        int aux=(i*100)/num_muestras;
+        if(pos!=aux){
+            system("cls");
+            printf("\nCargando TDFI... %d %%\n",aux+1);
+            pos=aux;
+        }
+        //Imprime los valores reales e imaginarios de cada una de las muestras
+        //printf("%d = { %lf }  \n",i,regreso_tdfi[i]);
     }
 }
 
