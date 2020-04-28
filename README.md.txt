@@ -13,7 +13,7 @@ Programas que modifican archivos WAV
 - [x] Main
 	- Programa base que lee, modifica y crea archivos WAV
 - [x] Dividir volumen
-- [ ] Convolucion 
+- [x] Convolucion 
 - [ ] Transformada discreta de Fourier (TDF)
 - [ ] Transformada discreta de Fourier Inversa (TDFI)
 - [ ] Trasformada rapida de Fourier (FFT)
