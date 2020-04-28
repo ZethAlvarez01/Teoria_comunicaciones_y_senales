@@ -14,7 +14,7 @@ Programas que modifican archivos WAV
 	- Programa base que lee, modifica y crea archivos WAV
 - [x] Dividir volumen
 - [x] Convolucion 
-- [ ] Transformada discreta de Fourier (TDF)
+- [x] Transformada discreta de Fourier (TDF)
 - [ ] Transformada discreta de Fourier Inversa (TDFI)
 - [ ] Trasformada rapida de Fourier (FFT)
 - [ ] Trasformada rapida de Fourier Inversa (FFTI)
