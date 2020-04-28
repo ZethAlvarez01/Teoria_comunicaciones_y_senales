@@ -402,6 +402,8 @@ void copiar_cabecera(unsigned char *cabecera,unsigned char *copia){
 //Funcion de TDF
 void tdf(double *arreglo_muestras,double *reales,double *imagin,int num_muestras){
 
+    int pos=0;
+
     for(int i=0;i<num_muestras;i++){
         for(int j=0;j<num_muestras;j++){
             reales[i]+=((arreglo_muestras[j])*cos((2*M_PI*i*j)/num_muestras))/num_muestras; // Reales
@@ -414,14 +416,14 @@ void tdf(double *arreglo_muestras,double *reales,double *imagin,int num_muestras
             imagin[i]=0.0;
         }
 
-        // int aux=(i*100)/num_muestras;
-        // int pos=0;
-        // if(pos!=aux){
-        //     system("cls");
-        //     printf("\nCargando TDF... %d %%\n",aux+1);
-        //     pos=aux;
-        // }
+        int aux=(i*100)/num_muestras;
         
-        printf("%d = { %lf + %lf j }  \n",i,reales[i], imagin[i]);
+        if(pos!=aux){
+            system("cls");
+            printf("\nCargando TDF... %d %%\n",aux+1);
+            pos=aux;
+        }
+        
+        //printf("%d = { %lf + %lf j }  \n",i,reales[i], imagin[i]);
     }
 }
