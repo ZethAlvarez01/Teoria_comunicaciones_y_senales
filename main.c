@@ -7,6 +7,10 @@ Teoria de comunicaciones y señales
 #include<stdlib.h>
 #include<math.h>
 
+#ifndef MPI
+#define M_PI 3.14159265358979323846
+#endif
+
 void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int num_bits);
 void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra);
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);

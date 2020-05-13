@@ -71,21 +71,23 @@ int main(int argc, char* argv[]){
 
     copiar_cabecera(cabecera,cabecera_copia);
 
-    if(metadata_cabecera[0] != 2){
+    //editar_cabecera(arreglo cabecera original, posicion valor a cambiar, nuevo valor);
+
+        if(metadata_cabecera[0] != 2){
         //Edito el canal
         editar_cabecera(cabecera_copia,0,2);
 
         //Edito el blockAlign
-        editar_cabecera(cabecera_copia,3,2*(metadata_cabecera[4]/8));
+        editar_cabecera(cabecera_copia,3,2*(metadata_cabecera[4]/8)); // canales * Tamaño en bytes de cada muestra / 8
 
         //Edito el numero de muestras
-        editar_cabecera(cabecera_copia,5,(metadata_cabecera[5]*metadata_cabecera[4]/8)*2);
+        editar_cabecera(cabecera_copia,5,(metadata_cabecera[5]*metadata_cabecera[4]/8)*2); //Numero de muestras * Tamaño en bytes de cada muestra / 8 * 2 //( dos porque son el doble de muestras)  
 
         //Edito el chucksize
-        editar_cabecera(cabecera_copia,6,metadata_cabecera[6]+(metadata_cabecera[5]*(metadata_cabecera[4]/8)));
+        editar_cabecera(cabecera_copia,6,metadata_cabecera[6]+(metadata_cabecera[5]*(metadata_cabecera[4]/8))); //Tamaño del archivo + (Numero de muestras * Tamaño en bytes de cada muestra / 8) numero de muestras nuevas en bytes
 
         //Edito ByteRate
-        editar_cabecera(cabecera_copia,2,metadata_cabecera[1]*2*(metadata_cabecera[4]/8));
+        editar_cabecera(cabecera_copia,2,metadata_cabecera[1]*2*(metadata_cabecera[4]/8));  //Frecuencia de muestreo * canales * Tamaño en bytes de cada muestra / 8
     }
 
     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)

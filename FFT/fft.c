@@ -7,6 +7,10 @@ Teoria de comunicaciones y señales
 #include<stdlib.h>
 #include<math.h>
 
+#ifndef MPI
+#define M_PI 3.14159265358979323846
+#endif
+
 void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int num_bits);
 void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra);
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);
@@ -61,6 +65,30 @@ int main(int argc, char* argv[]){
         que la componen 
     */
 
+    unsigned char cabecera_copia[44];
+
+    copiar_cabecera(cabecera,cabecera_copia);
+
+    //editar_cabecera(arreglo cabecera original, posicion valor a cambiar, nuevo valor);
+
+    if(metadata_cabecera[0] != 2){
+        //Edito el canal
+        editar_cabecera(cabecera_copia,0,2);
+
+        //Edito el blockAlign
+        editar_cabecera(cabecera_copia,3,2*(metadata_cabecera[4]/8)); // canales * Tamaño en bytes de cada muestra / 8
+
+        //Edito el numero de muestras
+        editar_cabecera(cabecera_copia,5,(metadata_cabecera[5]*metadata_cabecera[4]/8)*2); //Numero de muestras * Tamaño en bytes de cada muestra / 8 * 2 //( dos porque son el doble de muestras)  
+
+        //Edito el chucksize
+        editar_cabecera(cabecera_copia,6,metadata_cabecera[6]+(metadata_cabecera[5]*(metadata_cabecera[4]/8))); //Tamaño del archivo + (Numero de muestras * Tamaño en bytes de cada muestra / 8) numero de muestras nuevas en bytes
+
+        //Edito ByteRate
+        editar_cabecera(cabecera_copia,2,metadata_cabecera[1]*2*(metadata_cabecera[4]/8));  //Frecuencia de muestreo * canales * Tamaño en bytes de cada muestra / 8
+    }
+
+
     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
     //Esta linea se puede comentar si quieres el archivo RAW
 
@@ -101,7 +129,7 @@ int main(int argc, char* argv[]){
     int num_m_pot_2=pow(2,pot);
 
     rellenarFFI(arreglo_muestras_double,arreglo_FFI_muestras_double,num_muestras,num_m_pot_2);
-    
+
     
 
     //Regresar el arreglo resultado al archivo salida
