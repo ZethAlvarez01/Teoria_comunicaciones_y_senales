@@ -6,10 +6,12 @@ Teoria de comunicaciones y señales
 #include<stdio.h>  
 #include<stdlib.h>
 #include<math.h>
+#include <complex.h>
 
 #ifndef MPI
 #define M_PI 3.14159265358979323846
 #endif
+
 
 void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int num_bits);
 void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra);
@@ -17,6 +19,39 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
 void rellenarFFI(double *arreglo_muestras_double,double *arreglo_FFI_muestras_double,int num_muestras,int pot);
+
+void _fft(complex *buf, complex *out, int n, int step)
+{
+	if (step < n) {
+		_fft(out, buf, n, step * 2);
+		_fft(out + step, buf + step, n, step * 2);
+ 
+		for (int i = 0; i < n; i += 2 * step) {
+			complex t = cexp(-I * M_PI * i / n) * out[i + step];
+			buf[i / 2]     = out[i] + t;
+			buf[(i + n)/2] = out[i] - t;
+		}
+	}
+}
+
+void fft(complex *buf, int n)
+{
+	complex out[n];
+	for (int i = 0; i < n; i++) out[i] = buf[i];
+ 
+	_fft(buf, out, n, 1);
+}
+ 
+ 
+void show(const char * s, complex *buf) {
+	printf("%s", s);
+	for (int i = 0; i < 8; i++)
+		if (!cimag(buf[i]))
+			printf("%g ", creal(buf[i]));
+		else
+			printf("(%g, %g) ", creal(buf[i]), cimag(buf[i]));
+}
+
 
 int main(int argc, char* argv[]){
 
@@ -92,7 +127,7 @@ int main(int argc, char* argv[]){
     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
     //Esta linea se puede comentar si quieres el archivo RAW
 
-    fwrite(cabecera,sizeof(unsigned char),44,salida);
+    //fwrite(cabecera_copia,sizeof(unsigned char),44,salida);
 
     int num_muestras=metadata_cabecera[5];
     int num_muestras_hex=num_muestras*(metadata_cabecera[4]/8);
@@ -125,11 +160,20 @@ int main(int argc, char* argv[]){
     }
 
     double *arreglo_FFI_muestras_double=malloc(pow(2,pot) * sizeof(double));
-    
     int num_m_pot_2=pow(2,pot);
+    
 
     rellenarFFI(arreglo_muestras_double,arreglo_FFI_muestras_double,num_muestras,num_m_pot_2);
 
+    complex *buf = malloc(pow(2,pot) * sizeof(double));
+ 
+    for(int i=0;i<num_m_pot_2;i++){
+        buf[i]=arreglo_FFI_muestras_double[i];
+    }
+
+	show("Data: ", buf);
+	fft(buf, num_m_pot_2);
+	show("\nFFT : ", buf);
     
 
     //Regresar el arreglo resultado al archivo salida
