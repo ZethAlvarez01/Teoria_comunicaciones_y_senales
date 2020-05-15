@@ -137,7 +137,7 @@ int main(int argc, char* argv[]){
 
     rellenarFFI(arreglo_muestras_double,arreglo_FFI_muestras_real,num_muestras,num_m_pot_2);
 
-    fft(arreglo_FFI_muestras_real, arreglo_FFI_muestras_imag, num_m_pot_2, 1);
+    fft(arreglo_FFI_muestras_real, arreglo_FFI_muestras_imag, num_m_pot_2, 0);
 
     int m=0;
     int n=0;

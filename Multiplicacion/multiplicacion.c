@@ -15,10 +15,10 @@ void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
 
 int main(int argc, char* argv[]){
 
-    unsigned char cabecera1[44];
-    unsigned char cabecera2[44];
-    int metadata_cabecera1[7]={0,0,0,0,0,0,0}; 
-    int metadata_cabecera2[7]={0,0,0,0,0,0,0}; 
+    unsigned char cabecera_1[44];
+    unsigned char cabecera_2[44];
+    int metadata_cabecera_1[7]={0,0,0,0,0,0,0}; 
+    int metadata_cabecera_2[7]={0,0,0,0,0,0,0}; 
     /*
         Metadata de la cabecera         
         Posicion                                       Posicion
@@ -44,11 +44,11 @@ int main(int argc, char* argv[]){
     }
 
     //Abrir archivos de entrada1, entrada2 y salida
-    FILE *entrada1=fopen(argv[1],"rb");
-    FILE *entrada2=fopen(argv[2],"rb");
+    FILE *entrada_1=fopen(argv[1],"rb");
+    FILE *entrada_2=fopen(argv[2],"rb");
     FILE *salida=fopen(argv[3],"wb");
 
-    if (entrada1==NULL || entrada2==NULL || salida==NULL){
+    if (entrada_1==NULL || entrada_2==NULL || salida==NULL){
         fputs ("Error de lectura de archivos",stderr); 
         return 0;
     }
@@ -56,9 +56,9 @@ int main(int argc, char* argv[]){
     // Lee los 44 caracteres de la cabecera del archivo WAV
     // Guarda los datos de la cabecera en int (arreglo metadatos_cabecera) para poderlos usar
     //Entrada1
-    lectura_cabecera(entrada1,cabecera1,metadata_cabecera1,argv[1],imprimir);
+    lectura_cabecera(entrada_1,cabecera_1,metadata_cabecera_1,argv[1],imprimir);
     //Entrada2
-    lectura_cabecera(entrada2,cabecera2,metadata_cabecera2,argv[2],imprimir);
+    lectura_cabecera(entrada_2,cabecera_2,metadata_cabecera_2,argv[2],imprimir);
 
     /*
     --> Aqui modificar la cabecera (arreglo cabecera)<--
@@ -66,37 +66,33 @@ int main(int argc, char* argv[]){
         que la componen 
     */
     unsigned char nueva_cabecera[44];
-    int canal1=metadata_cabecera1[0];
-    int canal2=metadata_cabecera2[0];
+    int canal_1=metadata_cabecera_1[0];
+    int canal_2=metadata_cabecera_2[0];
 
-    if(canal1==2 && canal2==2){
+     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
+
+    if(canal_1==2 && canal_2==2){
             printf("2 y 2\n");
-            fwrite(cabecera2,sizeof(unsigned char),44,salida);
-    }else if((canal1==1 && canal2==2) || (canal1==2 && canal2==1)){
-        if(canal1==1){
+            //Esta linea se puede comentar si quieres el archivo RAW
+            //fwrite(cabecera2,sizeof(unsigned char),44,salida);
+    }else if((canal_1==1 && canal_2==2) || (canal_1==2 && canal_2==1)){
+        if(canal_1==1){
             printf("1 y 2\n");
-            fwrite(cabecera2,sizeof(unsigned char),44,salida);
+            //Esta linea se puede comentar si quieres el archivo RAW
+            //fwrite(cabecera2,sizeof(unsigned char),44,salida);
         }else
         {
             printf("2 y 1\n");
-            fwrite(cabecera2,sizeof(unsigned char),44,salida);
+            //Esta linea se puede comentar si quieres el archivo RAW
+            //fwrite(cabecera2,sizeof(unsigned char),44,salida);
         }
         
-    }else if(canal1==canal2){
+    }else if(canal_1==canal_2){
             printf("1 y 1\n");
-            //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
             //Esta linea se puede comentar si quieres el archivo RAW
-            fwrite(cabecera1,sizeof(unsigned char),44,salida);
+            //fwrite(cabecera1,sizeof(unsigned char),44,salida);
     }
 
-
-    //int num_muestras=metadata_cabecera1[5];
-    //int num_muestras_hex=num_muestras*(metadata_cabecera1[4]/8);
-
-    //double *arreglo_muestras_double=malloc(num_muestras * sizeof(double));
-    //char *arreglo_muestras_hex=malloc(num_muestras_hex * sizeof(char));
-    //Arreglo para los resultados
-    //double *resultado=malloc(num_muestras * sizeof(double));
 
     // Normalizar el valor entre 0 y 1 dependiendo el valor mayor que se consiga despues de operar cada una de las muestras
     //double normalizar=1; 
@@ -104,27 +100,40 @@ int main(int argc, char* argv[]){
     //Guarda las muestras en dos arreglos
     //arreglo_muestras_double -> Guarda las muestras con su valor en double dependiendo su configuracion 8,16 o 32 bits
     //arreglo_muestras_hex -> Guarda las muestras en su valor hexadecimal (1 byte en cada posicion del arreglo)
-    //printf("entrada, arreglo double, arreglo hex, %d byterate, %d num_muestras, %d tamaño bits muestras",metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
-    //lectura_muestras(entrada,arreglo_muestras_double,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
+    
+    int num_muestras_1=metadata_cabecera_1[5];
+    int num_muestras_hex_1=num_muestras_1*(metadata_cabecera_1[4]/8);
+
+    int num_muestras_2=metadata_cabecera_2[5];
+    int num_muestras_hex_2=num_muestras_2*(metadata_cabecera_2[4]/8);
+
+    double *arreglo_muestras_1=malloc(num_muestras_1 * sizeof(double));
+    char *arreglo_muestras_hex_1=malloc(num_muestras_hex_1 * sizeof(char));
+
+    double *arreglo_muestras_2=malloc(num_muestras_2 * sizeof(double));
+    char *arreglo_muestras_hex_2=malloc(num_muestras_hex_2 * sizeof(char));
+
+    lectura_muestras(entrada_1,arreglo_muestras_1,arreglo_muestras_hex_1,num_muestras_1,metadata_cabecera_1[4]);
+    lectura_muestras(entrada_2,arreglo_muestras_2,arreglo_muestras_hex_2,num_muestras_2,metadata_cabecera_2[4]);
 
     //Cierro el archivo de entrada
-    fclose(entrada1);
+    fclose(entrada_1);
 
     //Aqui meter la funcion que le vamos a aplicar la señal
     //Dividir señal, Convolucion, TDF, TDFI, FFT, FFTI, DTMF, Multiplicacion
 
 
-    if(canal1==2 && canal2==2){
+    if(canal_1==2 && canal_2==2){
             printf("2 y 2\n");
-    }else if((canal1==1 && canal2==2) || (canal1==2 && canal2==1)){
-        if(canal1==1){
+    }else if((canal_1==1 && canal_2==2) || (canal_1==2 && canal_2==1)){
+        if(canal_1==1){
             printf("1 y 2\n");
         }else
         {
             printf("2 y 1\n");
         }
         
-    }else if(canal1==canal2){
+    }else if(canal_1==canal_2){
             printf("1 y 1\n");
     }
     
