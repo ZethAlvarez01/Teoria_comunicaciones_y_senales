@@ -6,7 +6,6 @@ Teoria de comunicaciones y señales
 #include<stdio.h>  
 #include<stdlib.h>
 #include<math.h>
-#include <complex.h>
 
 #ifndef MPI
 #define M_PI 3.14159265358979323846
@@ -19,39 +18,8 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
 void rellenarFFI(double *arreglo_muestras_double,double *arreglo_FFI_muestras_double,int num_muestras,int pot);
-
-void _fft(complex *buf, complex *out, int n, int step)
-{
-	if (step < n) {
-		_fft(out, buf, n, step * 2);
-		_fft(out + step, buf + step, n, step * 2);
- 
-		for (int i = 0; i < n; i += 2 * step) {
-			complex t = cexp(-I * M_PI * i / n) * out[i + step];
-			buf[i / 2]     = out[i] + t;
-			buf[(i + n)/2] = out[i] - t;
-		}
-	}
-}
-
-void fft(complex *buf, int n)
-{
-	complex out[n];
-	for (int i = 0; i < n; i++) out[i] = buf[i];
- 
-	_fft(buf, out, n, 1);
-}
- 
- 
-void show(const char * s, complex *buf) {
-	printf("%s", s);
-	for (int i = 0; i < 8; i++)
-		if (!cimag(buf[i]))
-			printf("%g ", creal(buf[i]));
-		else
-			printf("(%g, %g) ", creal(buf[i]), cimag(buf[i]));
-}
-
+void fft(double *xr,double *xi,int N,int inverse);
+void swap(double *x1,double *x2,int i,int j);
 
 int main(int argc, char* argv[]){
 
@@ -159,22 +127,31 @@ int main(int argc, char* argv[]){
         else    break;
     }
 
-    double *arreglo_FFI_muestras_double=malloc(pow(2,pot) * sizeof(double));
+    double *arreglo_FFI_muestras_real=malloc(pow(2,pot) * sizeof(double));
+    double *arreglo_FFI_muestras_imag=malloc(pow(2,pot) * sizeof(double));
     int num_m_pot_2=pow(2,pot);
     
-
-    rellenarFFI(arreglo_muestras_double,arreglo_FFI_muestras_double,num_muestras,num_m_pot_2);
-
-    complex *buf = malloc(pow(2,pot) * sizeof(double));
- 
     for(int i=0;i<num_m_pot_2;i++){
-        buf[i]=arreglo_FFI_muestras_double[i];
+        arreglo_FFI_muestras_imag[i]=0.0;
     }
 
-	show("Data: ", buf);
-	fft(buf, num_m_pot_2);
-	show("\nFFT : ", buf);
-    
+    rellenarFFI(arreglo_muestras_double,arreglo_FFI_muestras_real,num_muestras,num_m_pot_2);
+
+    fft(arreglo_FFI_muestras_real, arreglo_FFI_muestras_imag, num_m_pot_2, 1);
+
+    int m=0;
+    int n=0;
+    for(int i=0;i<num_m_pot_2;i++){
+        double muestra[1];
+        if(i%2==0){
+            muestra[0]=arreglo_FFI_muestras_real[m];
+            m++;
+        }else{
+            muestra[0]=arreglo_FFI_muestras_imag[n];
+            n++;
+        }
+        regresar_arreglo_double(salida,muestra,1,metadata_cabecera[4]);
+    }
 
     //Regresar el arreglo resultado al archivo salida
     regresar_arreglo_double(salida,arreglo_muestras_double,num_muestras,metadata_cabecera[4]);
@@ -446,4 +423,47 @@ void rellenarFFI(double *arreglo_muestras_double,double *arreglo_FFI_muestras_do
         }
     }
 
+}
+
+void swap(double *x1,double *x2,int i,int j){
+    float aux = x1[i];
+    x1[i] = x2[j];
+    x2[j] = aux;
+}
+
+void fft(double *xr,double *xi,int N,int inverse){
+    int mmax,spet,i,j,k,j1,m,n;
+    float arg,s,c,w,tempr,tempi;
+
+    m=log((float) N) / log(2.0);
+    for(i=0; i<N ; ++i){
+        j=0;
+        for(k=0; k<m ; ++k)
+            j=(j<<1) | (1 & ( i>> k));
+        if(j < i){   
+            swap(xr,xr,i,j);  
+            swap(xi,xi,i,j);  
+        }
+    }
+    for(i=0;i<m;i++){
+        n=w=pow(2.0,(float)i);
+        w=M_PI/n;
+        if (inverse) w=-w;
+        k=0;
+        while(k<N-1){
+            for(j=0;j<n; j++){
+                arg=-j*w; c=cos(arg); s=sin(arg);
+                j1=k+j;
+                tempr=xr[j1+n]*c-xi[j1+n]*s;
+                tempi=xi[j1+n]*c-xr[j1+n]*s;
+                tempr=xr[j1]+tempr;
+                tempi=xi[j1]+tempi;
+            }
+            k+=2*n;
+        }
+    }
+    arg=1.0/sqrt((float)N);
+    for(i=0;i<N;i++){
+        xr[i]*=arg; xi[i]*=arg;
+    }
 }
