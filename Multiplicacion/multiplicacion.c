@@ -12,6 +12,8 @@ void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int nu
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,char *nombre,int flg);
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
+void multiplicarReal(double *archivo_1,double *archivo_2,double *salida, int tam);
+void multiplicarCmpjs(double *a, double *b, double *c, double *d,double *salidaR,double *salidaI, int tam);
 
 int main(int argc, char* argv[]){
 
@@ -70,27 +72,85 @@ int main(int argc, char* argv[]){
     int canal_2=metadata_cabecera_2[0];
 
      //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
+    int num_muestras_1=metadata_cabecera_1[5];
+    int num_muestras_2=metadata_cabecera_2[5];
+    int mayor;              //  0 = 1 = 2;  1 = 1 > 2;  2 = 1 < 2;  
+    int canales;            //  0 = 1 y 1;  1 = 1 y 2;  2 = 2 y 1;  3 = 2 y 2; 
 
+    //Marca que archivo tiene mas muestras
+    if(num_muestras_1<num_muestras_2){
+        mayor=2;
+    }else if(num_muestras_2==num_muestras_1){
+        mayor=0;
+    }else{
+        mayor=1;
+    }
+
+    //Marca que combinacion de canales corresponde 
     if(canal_1==2 && canal_2==2){
-            printf("2 y 2\n");
-            //Esta linea se puede comentar si quieres el archivo RAW
-            //fwrite(cabecera2,sizeof(unsigned char),44,salida);
+            canales = 3;
     }else if((canal_1==1 && canal_2==2) || (canal_1==2 && canal_2==1)){
         if(canal_1==1){
-            printf("1 y 2\n");
-            //Esta linea se puede comentar si quieres el archivo RAW
-            //fwrite(cabecera2,sizeof(unsigned char),44,salida);
+            canales = 1;
         }else
         {
-            printf("2 y 1\n");
-            //Esta linea se puede comentar si quieres el archivo RAW
-            //fwrite(cabecera2,sizeof(unsigned char),44,salida);
+            canales = 2;
         }
-        
     }else if(canal_1==canal_2){
-            printf("1 y 1\n");
-            //Esta linea se puede comentar si quieres el archivo RAW
-            //fwrite(cabecera1,sizeof(unsigned char),44,salida);
+            canales = 0;
+    }
+
+    //Switch Edita y escribe la cabecera correspondiente en el archivo de salida
+    switch (canales){
+    // Archivos con canales iguales 1 y 1 o 2 y 2
+    case 0:
+    case 3:
+        switch (mayor){
+            case 1:
+                fwrite(cabecera_1,sizeof(unsigned char),44,salida);
+                break;
+            case 2:
+                fwrite(cabecera_2,sizeof(unsigned char),44,salida);
+                break;
+            default:
+                fwrite(cabecera_1,sizeof(unsigned char),44,salida);
+            break;
+        }
+        break;
+    // Archivos con canales 1 y 2
+    case 1:
+        switch (mayor){
+            case 1:
+                // Archivos de diferentes tamaños se guardan como RAW
+                printf("Archivos de diferente tamaño, se guardan como RAW");
+                break;
+            case 2:
+                printf("Archivos de diferente tamaño, se guardan como RAW");
+                // Archivos de diferentes tamaños se guardan como RAW
+                break;
+            default:
+                //Archivos iguales
+                fwrite(cabecera_2,sizeof(unsigned char),44,salida);
+            break;
+        }
+        break;
+    // Archivos con canales 2 y 1
+    case 2:
+        switch (mayor){
+            case 1:
+                // Archivos de diferentes tamaños se guardan como RAW
+                printf("Archivos de diferente tamaño, se guardan como RAW");
+                break;
+            case 2:
+                printf("Archivos de diferente tamaño, se guardan como RAW");
+                // Archivos de diferentes tamaños se guardan como RAW
+                break;
+            default:
+                //Archivos iguales
+                fwrite(cabecera_1,sizeof(unsigned char),44,salida);
+            break;
+        }
+        break;
     }
 
 
@@ -100,47 +160,144 @@ int main(int argc, char* argv[]){
     //Guarda las muestras en dos arreglos
     //arreglo_muestras_double -> Guarda las muestras con su valor en double dependiendo su configuracion 8,16 o 32 bits
     //arreglo_muestras_hex -> Guarda las muestras en su valor hexadecimal (1 byte en cada posicion del arreglo)
-    
-    int num_muestras_1=metadata_cabecera_1[5];
-    int num_muestras_hex_1=num_muestras_1*(metadata_cabecera_1[4]/8);
 
-    int num_muestras_2=metadata_cabecera_2[5];
+    int num_muestras_g=0;
+
+    switch (mayor){
+            case 1:
+                num_muestras_g = num_muestras_1;
+                break;
+            case 2:
+                num_muestras_g = num_muestras_2;
+                break;
+            default:
+                num_muestras_g = num_muestras_1;
+            break;
+        }
+
+    //Numero de muestras en hexadecimal
+    int num_muestras_hex_1=num_muestras_1*(metadata_cabecera_1[4]/8);
     int num_muestras_hex_2=num_muestras_2*(metadata_cabecera_2[4]/8);
 
-    double *arreglo_muestras_1=malloc(num_muestras_1 * sizeof(double));
+    //Arreglo general de muestras (Archivo 1)
+    double *arreglo_muestras_1=malloc(num_muestras_g * sizeof(double));
     char *arreglo_muestras_hex_1=malloc(num_muestras_hex_1 * sizeof(char));
 
-    double *arreglo_muestras_2=malloc(num_muestras_2 * sizeof(double));
+    //Arreglo general de muestras (Archivo 2)
+    double *arreglo_muestras_2=malloc(num_muestras_g * sizeof(double));
     char *arreglo_muestras_hex_2=malloc(num_muestras_hex_2 * sizeof(char));
+
+    //Arreglos para muestras complejas (Archivo 1)
+    double *arreglo_muestras_1_R=malloc(num_muestras_g/2 * sizeof(double));
+    double *arreglo_muestras_1_I=malloc(num_muestras_g/2 * sizeof(double));
+        
+    //Arreglos para muestras complejas (Archivo 2)
+    double *arreglo_muestras_2_R=malloc(num_muestras_g/2 * sizeof(double));
+    double *arreglo_muestras_2_I=malloc(num_muestras_g/2 * sizeof(double));
+
+    switch (mayor){
+        case 1:
+            for(int i=0;i<num_muestras_g;i++){
+                arreglo_muestras_2[i]=0;
+            }
+            for(int i=0;i<num_muestras_g/2;i++){
+                arreglo_muestras_2_R[i]=0;
+                arreglo_muestras_2_I[i]=0;
+            }
+        break;
+        case 2:
+            for(int i=0;i<num_muestras_g;i++){
+                arreglo_muestras_1[i]=0;
+            }
+            for(int i=0;i<num_muestras_g/2;i++){
+                arreglo_muestras_1_R[i]=0;
+                arreglo_muestras_1_I[i]=0;
+            }
+        break;
+        default:
+        break;
+    }
+    
 
     lectura_muestras(entrada_1,arreglo_muestras_1,arreglo_muestras_hex_1,num_muestras_1,metadata_cabecera_1[4]);
     lectura_muestras(entrada_2,arreglo_muestras_2,arreglo_muestras_hex_2,num_muestras_2,metadata_cabecera_2[4]);
-
     //Cierro el archivo de entrada
     fclose(entrada_1);
 
+    //Separar muestras complejas
+
+    if(canales != 0){
+        int m=0,n=0;
+        for(int i=0;i<num_muestras_1;i++){
+            if(i%2==0){
+                arreglo_muestras_1_R[m]=arreglo_muestras_1[i];
+                arreglo_muestras_2_R[m]=arreglo_muestras_2[i];
+                m++;
+            }else{
+                arreglo_muestras_1_I[n]=arreglo_muestras_1[i];
+                arreglo_muestras_2_I[n]=arreglo_muestras_2[i];
+                n++;
+            }
+        }
+    }
+
+    //==========================================================================================
+
     //Aqui meter la funcion que le vamos a aplicar la señal
     //Dividir señal, Convolucion, TDF, TDFI, FFT, FFTI, DTMF, Multiplicacion
+    
+    double *arreglo_salidaR=malloc(num_muestras_1 * sizeof(double));
+    double *arreglo_salidaI=malloc(num_muestras_1 * sizeof(double));
 
-
-    if(canal_1==2 && canal_2==2){
-            printf("2 y 2\n");
-    }else if((canal_1==1 && canal_2==2) || (canal_1==2 && canal_2==1)){
-        if(canal_1==1){
-            printf("1 y 2\n");
-        }else
-        {
-            printf("2 y 1\n");
-        }
+    //Funcion Multiplicar
+    switch (canales){
+    // Archivos con canales iguales 1 y 1 o 2 y 2
+    case 0:
+        multiplicarReal(arreglo_muestras_1,arreglo_muestras_2,arreglo_salidaR,num_muestras_1);
+        break;
+    case 3:
+        multiplicarCmpjs(arreglo_muestras_1_R,arreglo_muestras_1_I,
+                         arreglo_muestras_2_R,arreglo_muestras_2_I,
+                         arreglo_salidaR,arreglo_salidaI,num_muestras_1/2);
         
-    }else if(canal_1==canal_2){
-            printf("1 y 1\n");
+        break;
+    // Archivos con canales 1 y 2
+    case 1:
+         multiplicarCmpjs(arreglo_muestras_1_R,arreglo_muestras_1_I,
+                         arreglo_muestras_2_R,arreglo_muestras_2_I,
+                         arreglo_salidaR,arreglo_salidaI,num_muestras_g/2);
+        break;
+    // Archivos con canales 2 y 1
+    case 2:
+         multiplicarCmpjs(arreglo_muestras_1_R,arreglo_muestras_1_I,
+                         arreglo_muestras_2_R,arreglo_muestras_2_I,
+                         arreglo_salidaR,arreglo_salidaI,num_muestras_g/2);
+        break;
     }
     
 
     //Regresar el arreglo resultado al archivo salida
-    //regresar_arreglo_double(salida,arreglo_muestras_double,num_muestras,metadata_cabecera[4]);
 
+    if(canales != 0){
+
+        int m=0;
+        int n=0;
+        for(int i=0;i<num_muestras_1;i++){
+            double muestra[1];
+            if(i%2==0){
+                muestra[0]=arreglo_salidaR[m];
+                m++;
+            }else{
+                muestra[0]=arreglo_salidaI[n];
+                n++;
+            }
+            regresar_arreglo_double(salida,muestra,1,metadata_cabecera_1[4]);
+        }
+
+    }else{
+        regresar_arreglo_double(salida,arreglo_salidaR,num_muestras_1,metadata_cabecera_1[4]);
+
+    }
 
     fclose(salida);
 
@@ -398,5 +555,34 @@ void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_va
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia){
     for(int i=0;i<44;i++){
         copia[i]=cabecera[i];
+    }
+}
+
+void multiplicarReal(double *archivo_1,double *archivo_2,double *salida, int tam){
+    for(int i=0;i<tam;i++){
+        salida[i] = archivo_1[i]*archivo_2[i];
+    }
+}
+
+// Multiplicar número complejos en forma binómica
+// (a + bi) * (c + di) = (ac − bd) + ( ad + bc)i
+void multiplicarCmpjs(double *a, double *b, double *c, double *d,double *salidaR,double *salidaI, int tam){
+    for(int i=0;i<tam;i++){
+        salidaR[i] = (a[i] * c[i]) - (b[i] * d[i]);
+        salidaR[i]/=2;
+        if(salidaR[i]>1){
+            salidaR[i]=1;
+        }
+        if(salidaR[i]<-1){
+            salidaR[i]=-1;
+        }
+        salidaI[i] = (a[i] * d[i]) + (b[i] * c[i]);
+        salidaI[i]/=2;
+        if(salidaI[i]>1){
+            salidaI[i]=1;
+        }
+        if(salidaI[i]<-1){
+            salidaI[i]=-1;
+        }
     }
 }
