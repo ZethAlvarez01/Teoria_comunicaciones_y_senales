@@ -95,7 +95,7 @@ int main(int argc, char* argv[]){
     //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
     //Esta linea se puede comentar si quieres el archivo RAW
 
-    //fwrite(cabecera_copia,sizeof(unsigned char),44,salida);
+    fwrite(cabecera_copia,sizeof(unsigned char),44,salida);
 
     int num_muestras=metadata_cabecera[5];
     int num_muestras_hex=num_muestras*(metadata_cabecera[4]/8);
@@ -114,22 +114,24 @@ int main(int argc, char* argv[]){
     //printf("entrada, arreglo double, arreglo hex, %d byterate, %d num_muestras, %d tamaño bits muestras",metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
     lectura_muestras(entrada,arreglo_muestras_double,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
 
+    int pot=0;
+    while(1){
+        if(num_muestras>pow(2,pot)) pot++;
+        else    break;
+    }
+    int num_m_pot_2=pow(2,pot);
+
+
     //Cierro el archivo de entrada
     fclose(entrada);
 
     //Aqui meter la funcion que le vamos a aplicar la señal
     //Dividir señal, Convolucion, TDF, TDFI, FFT, FFTI, DTMF, Multiplicacion
 
-    int pot=0;
-
-    while(1){
-        if(num_muestras>pow(2,pot)) pot++;
-        else    break;
-    }
 
     double *arreglo_FFI_muestras_real=malloc(pow(2,pot) * sizeof(double));
     double *arreglo_FFI_muestras_imag=malloc(pow(2,pot) * sizeof(double));
-    int num_m_pot_2=pow(2,pot);
+
     
     for(int i=0;i<num_m_pot_2;i++){
         arreglo_FFI_muestras_imag[i]=0.0;
@@ -137,24 +139,27 @@ int main(int argc, char* argv[]){
 
     rellenarFFI(arreglo_muestras_double,arreglo_FFI_muestras_real,num_muestras,num_m_pot_2);
 
-    fft(arreglo_FFI_muestras_real, arreglo_FFI_muestras_imag, num_m_pot_2, 0);
+    fft(arreglo_FFI_muestras_real, arreglo_FFI_muestras_real, num_m_pot_2, 1);
+
+    //Regresar el arreglo resultado al archivo salida
+    //regresar_arreglo_double(salida,arreglo_muestras_double,num_muestras,metadata_cabecera[4]);
 
     int m=0;
     int n=0;
-    for(int i=0;i<num_m_pot_2;i++){
+    for(int i=0;i<num_muestras*2;i++){
         double muestra[1];
         if(i%2==0){
-            muestra[0]=arreglo_FFI_muestras_real[m];
+                muestra[0]=arreglo_FFI_muestras_real[m]*num_muestras;
             m++;
         }else{
-            muestra[0]=arreglo_FFI_muestras_imag[n];
+                muestra[0]=arreglo_FFI_muestras_real[n]*num_muestras;
             n++;
         }
         regresar_arreglo_double(salida,muestra,1,metadata_cabecera[4]);
     }
 
-    //Regresar el arreglo resultado al archivo salida
-    regresar_arreglo_double(salida,arreglo_muestras_double,num_muestras,metadata_cabecera[4]);
+    printf("%d",1<<16);
+    
     fclose(salida);
 
     return 0;
@@ -414,8 +419,8 @@ void copiar_cabecera(unsigned char *cabecera,unsigned char *copia){
     }
 }
 
-void rellenarFFI(double *arreglo_muestras_double,double *arreglo_FFI_muestras_double,int num_muestras,int pot){
-    for(int i=0;i<pot;i++){
+void rellenarFFI(double *arreglo_muestras_double,double *arreglo_FFI_muestras_double,int num_muestras,int num_m_pot){
+    for(int i=0;i<num_m_pot;i++){
         if(i<num_muestras){
             arreglo_FFI_muestras_double[i]=arreglo_muestras_double[i];
         }else{
@@ -433,9 +438,9 @@ void swap(double *x1,double *x2,int i,int j){
 
 void fft(double *xr,double *xi,int N,int inverse){
     int mmax,spet,i,j,k,j1,m,n;
-    float arg,s,c,w,tempr,tempi;
+    double arg,s,c,w,tempr,tempi;
 
-    m=log((float) N) / log(2.0);
+    m=log((double) N) / log(2.0);
     for(i=0; i<N ; ++i){
         j=0;
         for(k=0; k<m ; ++k)
@@ -446,7 +451,7 @@ void fft(double *xr,double *xi,int N,int inverse){
         }
     }
     for(i=0;i<m;i++){
-        n=w=pow(2.0,(float)i);
+        n=w=pow(2.0,(double)i);
         w=M_PI/n;
         if (inverse) w=-w;
         k=0;
@@ -462,7 +467,7 @@ void fft(double *xr,double *xi,int N,int inverse){
             k+=2*n;
         }
     }
-    arg=1.0/sqrt((float)N);
+    arg=1.0/sqrt((double)N);
     for(i=0;i<N;i++){
         xr[i]*=arg; xi[i]*=arg;
     }
