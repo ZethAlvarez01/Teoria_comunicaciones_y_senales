@@ -19,7 +19,7 @@ Programas que modifican archivos WAV
 - [ ] Trasformada rapida de Fourier (FFT)
 - [ ] Trasformada rapida de Fourier Inversa (FFTI)
 - [ ] DTMF
-- [ ] Multiplicación
+- [x] Multiplicación
 
 ## NOTAS
 
