@@ -1,12 +1,3 @@
-/*
-Zeth Alvarez Hernandez  2020
-Teoria de comunicaciones y señales
-
--- Volumen -- 
-
-Escriba un programa que lea un archivo wav y genere otro archivo wav cuyo volumen sea la mitad del primero. El programa recibe los nombres de los archivos de entrada y salida de su linea de comando; por ejemplo:
-volumen entrada.wav salida.wav 
-*/
 
 #include<stdio.h>  
 #include<stdlib.h>
@@ -18,28 +9,15 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
 
-//Dividir una señal n veces  
+ 
 void dividir_senal(double *arreglo_muestras,double *resultado,int num_muestras,int n);
 
 int main(int argc, char* argv[]){
 
     unsigned char cabecera[44];
     int metadata_cabecera[7]={0,0,0,0,0,0,0}; 
-    /*
-        Metadata de la cabecera         
-        Posicion                                      Posicion
-        metadata_cabecera         Valor               cabecera       
-                    
-        [0]                      canales              [22 - 23]          
-        [1]               frecuencia de muestreo      [24 - 27]
-        [2]                      byte_rate            [28 - 31]
-        [3]                     block_align           [32 - 33] 
-        [4]          tamaño en bytes de cada muestra  [34 - 35]
-        [5]                  numero de muestras       [40 - 43]
-        [6]                  tamaño del archivo       [ 4 -  7]
-    */
-    //Imprime o no imprime los datos de la cabecera
-    int imprimir=1;   // 0 = imprime ; 1 = No imprime
+ 
+    int imprimir=1;   
 
     if(argc<3){
         printf("Error! \nFaltan argumentos\n");
@@ -49,7 +27,6 @@ int main(int argc, char* argv[]){
         return 0;
     }
 
-    //Abrir archivos de entrada y salida
     FILE *entrada=fopen(argv[1],"rb");
     FILE *salida=fopen(argv[2],"wb");
 
@@ -58,18 +35,10 @@ int main(int argc, char* argv[]){
         return 0;
     }
 
-    // Lee los 44 caracteres de la cabecera del archivo WAV
-    // Guarda los datos de la cabecera en int (arreglo metadatos_cabecera) para poderlos usar
+  
     lectura_cabecera(entrada,cabecera,metadata_cabecera,imprimir);
 
-    /*
-    --> Aqui modificar la cabecera (arreglo cabecera)<--
-        Las 44 posiciones del arreglo cabecera coindicen con cada uno de los 44 bytes
-        que la componen 
-    */
-
-    //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
-    //Esta linea se puede comentar si quieres el archivo RAW
+   
 
     fwrite(cabecera,sizeof(unsigned char),44,salida);
 
@@ -81,25 +50,16 @@ int main(int argc, char* argv[]){
     double *resultado=malloc(num_muestras * sizeof(double));
     
     
-    // Normalizar el valor entre 0 y 1 dependiendo el valor mayor que se consiga despues de operar cada una de las muestras
-    //double normalizar=1; 
-
-    //Guarda las muestras en dos arreglos
-    //arreglo_muestras_double -> Guarda las muestras con su valor en double dependiendo su configuracion 8,16 o 32 bits
-    //arreglo_muestras_hex -> Guarda las muestras en su valor hexadecimal (1 byte en cada posicion del arreglo)
-    //printf("entrada, arreglo double, arreglo hex, %d byterate, %d num_muestras, %d tamaño bits muestras",metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
+   
     lectura_muestras(entrada,arreglo_muestras_double,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
 
-    //Cierro el archivo de entrada
+   
     fclose(entrada);
 
-    //Aqui meter la funcion que le vamos a aplicar la señal
-    //Dividir señal, Convolucion, TDF, TDFI, FFT, FFTI, DTMF, Multiplicacion
-
-    //Dividir señal
+    
     dividir_senal(arreglo_muestras_double,resultado,num_muestras,2); 
 
-    //Regresar el arreglo resultado al archivo salida
+    
     regresar_arreglo_double(salida,resultado,num_muestras,metadata_cabecera[4]);
 
 
@@ -108,7 +68,6 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
-///Funciones generales para tratar el archivo
 
 
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg){
@@ -119,8 +78,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
         cabecera[posicion_archivo] = fgetc(entrada);
         posicion_archivo++;
     }
-
-    //Tamaño archivo
     int ind=7;
     long unsigned int tamano_archivo=0x0000;
     while(ind>=4){
@@ -129,7 +86,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     }
     
 
-    //Canales que trabaja el archivo
+    
     ind=22;
     char b1=cabecera[ind];
     short canales=cabecera[++ind];
@@ -137,7 +94,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     canales+=b1;
     metadata_cabecera[0]=canales;
     
-    //Frecuencia de muestreo
+   
     ind=27;
     long unsigned int frecuencia_muestreo=0x0000;
     while(ind>=24){
@@ -146,7 +103,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     }
     metadata_cabecera[1]=frecuencia_muestreo;
 
-    //Tasa de bytes
+   
     ind=31;
     long unsigned int byte_rate=0x0000;
     while(ind>=28){
@@ -155,7 +112,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     }
     metadata_cabecera[2]=byte_rate;
 
-    // Block align
+   
     ind=32;
     b1=cabecera[ind];
     short block_align=cabecera[++ind];
@@ -163,7 +120,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     block_align+=b1;
     metadata_cabecera[3]=block_align;
 
-    // Bytes per samble (Tamaño de las muestras)
+    
     ind=34;
     b1=cabecera[ind];
     short tamano_muestras=cabecera[++ind];
@@ -173,7 +130,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 
     int bytes_x_muestra=tamano_muestras/8;
 
-    //Numero de  muestras
+  
     ind=43;
     unsigned long int num_muestras=0x0000;
     
