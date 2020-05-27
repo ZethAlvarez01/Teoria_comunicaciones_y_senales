@@ -19,7 +19,7 @@ Programas que modifican archivos WAV
 - [x] Transformada discreta de Fourier (TDF)
 	- [x] Subido a moodle
 - [x] Transformada discreta de Fourier Inversa (TDFI)
-	- [ ] Subido a moodle
+	- [x] Subido a moodle
 - [ ] Trasformada rapida de Fourier (FFT)
 	- [ ] Subido a moodle
 - [ ] Trasformada rapida de Fourier Inversa (FFTI)
