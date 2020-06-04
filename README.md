@@ -22,8 +22,8 @@ Programas que modifican archivos WAV
 	- [x] Subido a moodle
 - [x] Trasformada rapida de Fourier (FFT)
 	- [x] Subido a moodle
-- [ ] Trasformada rapida de Fourier Inversa (FFTI)
-	- [ ] Subido a moodle
+- [x] Trasformada rapida de Fourier Inversa (FFTI)
+	- [x] Subido a moodle
 - [ ] DTMF
 	- [ ] Subido a moodle
 - [x] Multiplicación
