@@ -6,22 +6,20 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-
 void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int num_bits);
 void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int num_bytes_por_muestra);
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
-void rellenarFFI(double *arreglo_muestras_double,double *arreglo_FFI_muestras_double,int num_muestras,int pot);
-void fft(double *xr,double *xi,int N,int inverse);
-void swap(double *x1,double *x2,int i,int j);
+int FFT(double *xr,double *xi,int N,int inverse);
+
 
 int main(int argc, char* argv[]){
 
     unsigned char cabecera[44];
     int metadata_cabecera[7]={0,0,0,0,0,0,0}; 
 
-    int imprimir=0;  
+    int imprimir=0; 
 
     if(argc<3){
         printf("Error! \nFaltan argumentos\n");
@@ -31,6 +29,7 @@ int main(int argc, char* argv[]){
         return 0;
     }
 
+
     FILE *entrada=fopen(argv[1],"rb");
     FILE *salida=fopen(argv[2],"wb");
 
@@ -39,68 +38,55 @@ int main(int argc, char* argv[]){
         return 0;
     }
 
- 
     lectura_cabecera(entrada,cabecera,metadata_cabecera,imprimir);
 
-
-    unsigned char cabecera_copia[44];
-
-    copiar_cabecera(cabecera,cabecera_copia);
-
-
-    if(metadata_cabecera[0] != 2){
-
-        editar_cabecera(cabecera_copia,0,2);
-
-
-        editar_cabecera(cabecera_copia,3,2*(metadata_cabecera[4]/8));
-
-        editar_cabecera(cabecera_copia,5,(metadata_cabecera[5]*metadata_cabecera[4]/8)*2); 
-
-        editar_cabecera(cabecera_copia,6,metadata_cabecera[6]+(metadata_cabecera[5]*(metadata_cabecera[4]/8)));
-
-        editar_cabecera(cabecera_copia,2,metadata_cabecera[1]*2*(metadata_cabecera[4]/8));
-    }
-
-
-    fwrite(cabecera_copia,sizeof(unsigned char),44,salida);
+    fwrite(cabecera,sizeof(unsigned char),44,salida);
 
     int num_muestras=metadata_cabecera[5];
     int num_muestras_hex=num_muestras*(metadata_cabecera[4]/8);
 
     double *arreglo_muestras_double=malloc(num_muestras * sizeof(double));
     char *arreglo_muestras_hex=malloc(num_muestras_hex * sizeof(char));
-   
+  
     lectura_muestras(entrada,arreglo_muestras_double,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
 
     int pot=0;
     while(1){
-        if(num_muestras>pow(2,pot)) pot++;
+        if(num_muestras/2>pow(2,pot)) pot++;
         else    break;
     }
-    int num_m_pot_2=pow(2,pot);
 
+    int num_m_pot_2=pow(2,pot);
 
     fclose(entrada);
 
+    double *arreglo_FFI_muestras_real=malloc(num_m_pot_2 * sizeof(double));
+    double *arreglo_FFI_muestras_imag=malloc(num_m_pot_2 * sizeof(double));
 
-
-    double *arreglo_FFI_muestras_real=malloc(pow(2,pot) * sizeof(double));
-    double *arreglo_FFI_muestras_imag=malloc(pow(2,pot) * sizeof(double));
-
-    
     for(int i=0;i<num_m_pot_2;i++){
-        arreglo_FFI_muestras_imag[i]=0.0;
+        arreglo_FFI_muestras_real[i] = 0.0;
+        arreglo_FFI_muestras_imag[i] = 0.0;
     }
 
-    rellenarFFI(arreglo_muestras_double,arreglo_FFI_muestras_real,num_muestras,num_m_pot_2);
-
-    fft(arreglo_FFI_muestras_real, arreglo_FFI_muestras_imag, num_m_pot_2, 1);
-
-   
     int m=0;
     int n=0;
-    for(int i=0;i<num_muestras*2;i++){
+
+    for(int i=0;i<num_muestras;i++){
+        if(i%2==0){
+                arreglo_FFI_muestras_real[m]=arreglo_muestras_double[i];
+            m++;
+        }else{
+                arreglo_FFI_muestras_imag[n]=arreglo_muestras_double[i];
+            n++;
+        }
+    }
+    
+    FFT(arreglo_FFI_muestras_real,arreglo_FFI_muestras_imag,num_m_pot_2,1);
+
+    m=0;
+    n=0;
+
+    for(int i=0;i<num_muestras;i++){
         double muestra[1];
         if(i%2==0){
                 muestra[0]=arreglo_FFI_muestras_real[m];
@@ -127,6 +113,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
         posicion_archivo++;
     }
 
+
     int ind=7;
     long unsigned int tamano_archivo=0x0000;
     while(ind>=4){
@@ -140,7 +127,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     canales<<=8;
     canales+=b1;
     metadata_cabecera[0]=canales;
-
+    
     ind=27;
     long unsigned int frecuencia_muestreo=0x0000;
     while(ind>=24){
@@ -149,7 +136,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     }
     metadata_cabecera[1]=frecuencia_muestreo;
 
-
     ind=31;
     long unsigned int byte_rate=0x0000;
     while(ind>=28){
@@ -157,7 +143,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
         byte_rate+=cabecera[ind--];
     }
     metadata_cabecera[2]=byte_rate;
-
 
     ind=32;
     b1=cabecera[ind];
@@ -187,15 +172,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     metadata_cabecera[6]=tamano_archivo;
 
     if(flg==1){
-        printf("\t\n->Archivo de ENTRADA\n");
-        printf("\t\nTamano del archivo:  %ld bytes",tamano_archivo);
-        printf("\t\nCanales: %d",canales);
-        printf("\t\nFrecuencia de muestreo (Sample rate): %ld Hz",frecuencia_muestreo); 
-        printf("\t\nTasa de bytes (Byte rate): %ld",byte_rate);
-        printf("\t\nBlock Align: %d",block_align);
-        printf("\t\nTamano de las muestras: %d bytes",tamano_muestras);
-        printf("\t\nNumero de muestras: %ld ",num_muestras/bytes_x_muestra);
-        printf("\n\n");    
+
     }
 
     return 0;
@@ -208,7 +185,9 @@ void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arregl
     int bytes=tam_muestras/8;
     int leer_n_muestras=num_muestras*bytes;
     double potencia=((pow(2,(tam_muestras))/2)-1);
+
     unsigned char valorC=0x00;
+
     long int valorI=0x00;
     char aux=0x0;
     double muestra=0;
@@ -289,6 +268,7 @@ void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_va
    unsigned long int aux=nuevo_valor;
    unsigned char regresar[4]={0x00,0x00,0x00,0x00};
    switch (pos){
+
         case 0:
         case 3:
         case 4:
@@ -346,7 +326,7 @@ void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_va
                 }
             break;
         default:
-            printf("Error posicion incorrecta!");
+
             break;
    }
 }
@@ -357,27 +337,18 @@ void copiar_cabecera(unsigned char *cabecera,unsigned char *copia){
     }
 }
 
-void rellenarFFI(double *arreglo_muestras_double,double *arreglo_FFI_muestras_double,int num_muestras,int num_m_pot){
-    for(int i=0;i<num_m_pot;i++){
-        if(i<num_muestras){
-            arreglo_FFI_muestras_double[i]=arreglo_muestras_double[i];
-        }else{
-            arreglo_FFI_muestras_double[i]=0.0;
-        }
-    }
-
-}
-
 void swap(double *x1,double *x2,int i,int j){
     double aux = x1[i];
     x1[i] = x2[j];
     x2[j] = aux;
+
 }
 
-void fft(double *xr,double *xi,int N,int inverse) {
+int FFT(double *xr,double *xi,int N,int inverse) {
 	int i,j,k,j1,m,n;
-	float arg,s,c,w,tempr,tempi;
-	m=log((float)N)/log(2.0);
+	double arg,s,c,w,tempr,tempi;
+	m=log((double)N)/log(2.0);
+	//bit reversal,intercambiando los datos
 	for (i=0; i<N;++i){
 		j=0;
 		for (k=0;k<m;++k)
@@ -387,7 +358,7 @@ void fft(double *xr,double *xi,int N,int inverse) {
 			}
 	}
 	for (i=0;i<m;i++){
-		n=w=pow(2.0,(float)i);
+		n=w=pow(2.0,(double)i);
 		w=M_PI/n;
 		if (inverse) w=-w;
 		k=0;
@@ -411,5 +382,6 @@ void fft(double *xr,double *xi,int N,int inverse) {
 		if (xi[i]<-1.0)xi[i]=-1;
 		if (xr[i]<-1.0)xr[i]=-1;
 	}	
-	
+	 
+	return 1;
 }
