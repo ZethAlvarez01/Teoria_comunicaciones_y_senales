@@ -20,8 +20,8 @@ Programas que modifican archivos WAV
 	- [x] Subido a moodle
 - [x] Transformada discreta de Fourier Inversa (TDFI)
 	- [x] Subido a moodle
-- [ ] Trasformada rapida de Fourier (FFT)
-	- [ ] Subido a moodle
+- [x] Trasformada rapida de Fourier (FFT)
+	- [x] Subido a moodle
 - [ ] Trasformada rapida de Fourier Inversa (FFTI)
 	- [ ] Subido a moodle
 - [ ] DTMF
@@ -31,5 +31,5 @@ Programas que modifican archivos WAV
 
 ## NOTAS
 
-Dividir volumen, Convolucion TDF y TDFI funcionan con archivos de audio WAV guardados con formato de 8 o 16 bits
+Dividir volumen, Convolucion, TDF, TDFI y FFT funcionan con archivos de audio WAV guardados con formato de 8 o 16 bits
 
