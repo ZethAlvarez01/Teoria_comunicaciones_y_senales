@@ -29,7 +29,6 @@ int main(int argc, char* argv[]){
         return 0;
     }
 
-
     FILE *entrada=fopen(argv[1],"rb");
     FILE *salida=fopen(argv[2],"wb");
 
@@ -60,28 +59,28 @@ int main(int argc, char* argv[]){
 
     fclose(entrada);
 
-    double *arreglo_FFI_muestras_real=malloc(num_m_pot_2 * sizeof(double));
-    double *arreglo_FFI_muestras_imag=malloc(num_m_pot_2 * sizeof(double));
+   double *arreglo_muestras_real=malloc(num_m_pot_2 * sizeof(double));
+   double *arreglo_muestras_imag=malloc(num_m_pot_2 * sizeof(double));
 
-    for(int i=0;i<num_m_pot_2;i++){
-        arreglo_FFI_muestras_real[i] = 0.0;
-        arreglo_FFI_muestras_imag[i] = 0.0;
-    }
+   for (int i = 0; i < num_m_pot_2; i++){
+       arreglo_muestras_real[i] = 0.0;
+       arreglo_muestras_imag[i] = 0.0;
+   }
 
     int m=0;
     int n=0;
 
     for(int i=0;i<num_muestras;i++){
         if(i%2==0){
-                arreglo_FFI_muestras_real[m]=arreglo_muestras_double[i];
+                arreglo_muestras_real[m]=arreglo_muestras_double[i];
             m++;
         }else{
-                arreglo_FFI_muestras_imag[n]=arreglo_muestras_double[i];
+                arreglo_muestras_imag[n]=arreglo_muestras_double[i];
             n++;
         }
     }
     
-    FFT(arreglo_FFI_muestras_real,arreglo_FFI_muestras_imag,num_m_pot_2,1);
+    FFT(arreglo_muestras_real,arreglo_muestras_imag,num_m_pot_2,1);
 
     m=0;
     n=0;
@@ -89,10 +88,10 @@ int main(int argc, char* argv[]){
     for(int i=0;i<num_muestras;i++){
         double muestra[1];
         if(i%2==0){
-                muestra[0]=arreglo_FFI_muestras_real[m];
+                muestra[0]=arreglo_muestras_real[m];
             m++;
         }else{
-                muestra[0]=arreglo_FFI_muestras_imag[n];
+                muestra[0]=arreglo_muestras_imag[n];
             n++;
         }
         regresar_arreglo_double(salida,muestra,1,metadata_cabecera[4]);
@@ -182,51 +181,39 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int tam_muestras){
 
     int ind=0;
+    int m=0;
     int bytes=tam_muestras/8;
     int leer_n_muestras=num_muestras*bytes;
-    double potencia=((pow(2,(tam_muestras))/2)-1);
-
-    unsigned char valorC=0x00;
-
-    long int valorI=0x00;
-    char aux=0x0;
-    double muestra=0;
+    //double potencia=((pow(2,(tam_muestras))/2)-1);
     
 
     while(ind<leer_n_muestras){
-        arreglo_muestras_hex[ind]=fgetc(entrada);
-        ind++;
-    }
-
-    ind=num_muestras-1;
-         
-    switch (bytes){
-        case 1:
-            for(int i=0;i<num_muestras;i++){
-                valorC=arreglo_muestras_hex[i];
-                muestra=(valorC-potencia)/potencia;
-                if(muestra>1) muestra=1;
-                if(muestra<-1) muestra=-1;
-                arreglo_muestras_double[i]=muestra;
-            }
+        switch (bytes)
+        {
+        case 1: {
+            int muestra = 0x0;
+            muestra = fgetc(entrada);
+            arreglo_muestras_hex[m] = muestra;
+            arreglo_muestras_double[m] = (muestra-128.0)/128.0;            
+            ind++;
+            m++;
+        }
+            
             break;
-        default:
-            for(int i=leer_n_muestras-1;i>=0;i--){
-                aux=arreglo_muestras_hex[i];
-                valorI<<=8;
-                valorI+=aux;
-                if(i%bytes==0){
-                    muestra=valorI/potencia;
-                    if(muestra>1) muestra=1;
-                    if(muestra<-1) muestra=-1;
-                    arreglo_muestras_double[ind]=muestra;
-                    ind--;
-                    aux=0x0;
-                    valorI=0x0;
-                }
-                
-            }
+        case 2: {
+            short muestra = 0x0;
+            unsigned char muestra0 = fgetc(entrada); 
+            unsigned char muestra1 = fgetc(entrada);
+            arreglo_muestras_hex[ind] = muestra0;
+            ind++;
+            arreglo_muestras_hex[ind] = muestra1;
+            ind++;
+            muestra = muestra0|muestra1<<8;
+            arreglo_muestras_double[m] = muestra/32768.0;
+            m++;
+        }
             break;
+        }
     }
 
    
