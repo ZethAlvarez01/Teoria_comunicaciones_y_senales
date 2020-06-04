@@ -434,44 +434,44 @@ void swap(double *x1,double *x2,int i,int j){
     x2[j] = aux;
 }
 
-void fft(double *xr,double *xi,int N,int inverse){
-    int mmax,spet,i,j,k,j1,m,n;
-    double arg,s,c,w,tempr,tempi;
-
-    m=log((double) N) / log(2.0);
-    for(i=0; i<N ; ++i){
-        j=0;
-        for(k=0; k<m ; ++k)
-            j=(j<<1) | (1 & ( i>> k));
-        if(j < i){   
-            swap(xr,xr,i,j);  
-            swap(xi,xi,i,j);  
-        }
-    }
-    for(i=0;i<m;i++){
-        n=w=pow(2.0,(double)i);
-        w=M_PI/n;
-        if (inverse) w=-w;
-        k=0;
-        while(k<N-1){
-            for(j=0;j<n; j++){
-                arg=-j*w; c=cos(arg); s=sin(arg);
-                j1=k+j;
-                tempr=xr[j1+n]*c-xi[j1+n]*s;
-                tempi=xi[j1+n]*c+xr[j1+n]*s;
-
-                xr[j1+n]=xr[j1]-tempr;
-                xi[j1+n]=xi[j1]-tempi;
-
-                xr[j1]=xr[j1]+tempr;
-                xi[j1]=xi[j1]+tempi;
-
-            }
-            k+=2*n;
-        }
-    }
-    arg=1.0/sqrt((double)N);
-    for(i=0;i<N;i++){
-        xr[i]*=arg; xi[i]*=arg;
-    }
+int FFT(float *xr,float *xi,int N,int inverse) {
+	int i,j,k,j1,m,n;
+	float arg,s,c,w,tempr,tempi;
+	m=log((float)N)/log(2.0);
+	//bit reversal,intercambiando los datos
+	for (i=0; i<N;++i){
+		j=0;
+		for (k=0;k<m;++k)
+			j=(j<<1)| (1 & (i>>k));
+		if (j<i){
+		SWAP(&xr[i],&xr[j]); SWAP(&xi[i],&xi[j]);	
+			}
+	}
+	for (i=0;i<m;i++){
+		n=w=pow(2.0,(float)i);
+		w=M_PI/n;
+		if (inverse) w=-w;
+		k=0;
+		while (k<N-1){
+			for (j=0;j<n;j++){
+			arg=-j*w; c=cos(arg); s=sin(arg);
+			j1=k+j;
+			tempr=xr[j1+n]*c-xi[j1+n]*s;
+			tempi=xi[j1+n]*c+xr[j1+n]*s;
+			xr[j1+n]=xr[j1]-tempr;
+			xi[j1+n]=xi[j1]-tempi;
+			xr[j1]=xr[j1]+tempr;
+			xi[j1]=xi[j1]+tempi;
+			}
+			k+=2*n;
+		}
+	}
+	for (i=0;i<N;i++){
+		if (xi[i]>1.0)xi[i]=1;
+		if (xr[i]>1.0)xr[i]=1;
+		if (xi[i]<-1.0)xi[i]=-1;
+		if (xr[i]<-1.0)xr[i]=-1;
+	}	
+	 
+	return 1;
 }
