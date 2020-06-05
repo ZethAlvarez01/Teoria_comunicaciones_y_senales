@@ -16,6 +16,8 @@ void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int nu
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg);
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor);
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
+int  FFT(double *xr,double *xi,int N,int inverse);
+void swap(double *x1,double *x2,int i,int j);
 
 int main(int argc, char* argv[]){
 
@@ -37,21 +39,21 @@ int main(int argc, char* argv[]){
     //Imprime o no imprime los datos de la cabecera
     int imprimir=1;   // 0 = imprime ; 1 = No imprime
 
-    if(argc<2){
-        printf("Error! \nFaltan argumentos\n");
+     if(argc<3){
+
         return 0;
-    }else if (argc>2){
-        printf("Error! \nSobran argumentos\n");
+    }else if (argc>3){
+
         return 0;
     }
 
-    //Abrir archivos de entrada y salida
     FILE *entrada=fopen(argv[1],"rb");
+    FILE *salida=fopen(argv[2],"wb");
 
-    if (entrada==NULL){
-        fputs ("Error de lectura de archivos",stderr); 
+    if (entrada==NULL || salida==NULL){
         return 0;
     }
+
 
     // Lee los 44 caracteres de la cabecera del archivo WAV
     // Guarda los datos de la cabecera en int (arreglo metadatos_cabecera) para poderlos usar
@@ -88,19 +90,36 @@ int main(int argc, char* argv[]){
     //Cierro el archivo de entrada
     fclose(entrada);
 
-    //Aqui meter la funcion que le vamos a aplicar la señal
-    //Dividir señal, Convolucion, TDF, TDFI, FFT, FFTI, DTMF, Multiplicacion
+    int pot=0;
+    while(1){
+        if(num_muestras/2>pow(2,pot)) pot++;
+        else    break;
+    }
 
+    int num_m_pot_2=pow(2,pot);
 
+    double *arreglo_muestras_real=malloc(num_m_pot_2 * sizeof(double));
+    double *arreglo_muestras_imag=malloc(num_m_pot_2 * sizeof(double));
 
+    for (int i = 0; i < num_m_pot_2; i++){
+       arreglo_muestras_real[i] = 0.0;
+       arreglo_muestras_imag[i] = 0.0;
+   }
+
+   for (int i = 0; i < num_muestras; i++){
+       arreglo_muestras_real[i] = arreglo_muestras_double[i];
+   }
+
+    FFT(arreglo_muestras_real,arreglo_muestras_imag,num_m_pot_2,1);
     
+    for(int i=0;i<num_muestras;i++){ 
+        //printf("%f \n",arreglo_muestras_real[i]);
+    }
 
-    //Regresar el arreglo resultado al archivo salida
-    //regresar_arreglo_double(salida,arreglo_muestras_double,num_muestras,metadata_cabecera[4]);
+    regresar_arreglo_double(salida,arreglo_muestras_real,num_muestras,metadata_cabecera[4]);
 
 
-    //fclose(salida);
-
+    fclose(salida);
     return 0;
 }
 
@@ -199,52 +218,39 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arreglo_muestras_hex,int num_muestras,int tam_muestras){
 
     int ind=0;
+    int m=0;
     int bytes=tam_muestras/8;
     int leer_n_muestras=num_muestras*bytes;
-    double potencia=((pow(2,(tam_muestras))/2)-1);
-    //Variables para muestras de 8 bits
-    unsigned char valorC=0x00;
-    //Variables para muestras de mas de 8 bits
-    long int valorI=0x00;
-    char aux=0x0;
-    //Muestra
-    double muestra=0;
+    //double potencia=((pow(2,(tam_muestras))/2)-1);
     
 
     while(ind<leer_n_muestras){
-        arreglo_muestras_hex[ind]=fgetc(entrada);
-        ind++;
-    }
-
-    ind=num_muestras-1;
-         
-    switch (bytes){
-        case 1:
-            for(int i=0;i<num_muestras;i++){
-                valorC=arreglo_muestras_hex[i];
-                muestra=(valorC-potencia)/potencia;
-                if(muestra>1) muestra=1;
-                if(muestra<-1) muestra=-1;
-                arreglo_muestras_double[i]=muestra;
-            }
+        switch (bytes)
+        {
+        case 1: {
+            int muestra = 0x0;
+            muestra = fgetc(entrada);
+            arreglo_muestras_hex[m] = muestra;
+            arreglo_muestras_double[m] = (muestra-128.0)/128.0;            
+            ind++;
+            m++;
+        }
+            
             break;
-        default:
-            for(int i=leer_n_muestras-1;i>=0;i--){
-                aux=arreglo_muestras_hex[i];
-                valorI<<=8;
-                valorI+=aux;
-                if(i%bytes==0){
-                    muestra=valorI/potencia;
-                    if(muestra>1) muestra=1;
-                    if(muestra<-1) muestra=-1;
-                    arreglo_muestras_double[ind]=muestra;
-                    ind--;
-                    aux=0x0;
-                    valorI=0x0;
-                }
-                
-            }
+        case 2: {
+            short muestra = 0x0;
+            unsigned char muestra0 = fgetc(entrada); 
+            unsigned char muestra1 = fgetc(entrada);
+            arreglo_muestras_hex[ind] = muestra0;
+            ind++;
+            arreglo_muestras_hex[ind] = muestra1;
+            ind++;
+            muestra = muestra0|muestra1<<8;
+            arreglo_muestras_double[m] = muestra/32768.0;
+            m++;
+        }
             break;
+        }
     }
 
    
@@ -356,4 +362,55 @@ void copiar_cabecera(unsigned char *cabecera,unsigned char *copia){
     for(int i=0;i<44;i++){
         copia[i]=cabecera[i];
     }
+}
+
+
+void swap(double *x1,double *x2,int i,int j){
+    double aux = x1[i];
+    x1[i] = x2[j];
+    x2[j] = aux;
+}
+
+int FFT(double *xr,double *xi,int N,int inverse){
+    int i,j,k,j1,m,n;
+    double arg,s,c,w,tempr,tempi;
+
+    m=log((double) N) / log(2.0);
+    for(i=0; i<N ; ++i){
+        j=0;
+        for(k=0; k<m ; ++k)
+            j=(j<<1) | (1 & ( i>> k));
+        if(j < i){   
+            swap(xr,xr,i,j);  
+            swap(xi,xi,i,j);  
+        }
+    }
+    for(i=0;i<m;i++){
+        n=w=pow(2.0,(double)i);
+        w=M_PI/n;
+        if (inverse) w=-w;
+        k=0;
+        while(k<N-1){
+            for(j=0;j<n; j++){
+                arg=-j*w; c=cos(arg); s=sin(arg);
+                j1=k+j;
+                tempr=xr[j1+n]*c-xi[j1+n]*s;
+                tempi=xi[j1+n]*c+xr[j1+n]*s;
+
+                xr[j1+n]=xr[j1]-tempr;
+                xi[j1+n]=xi[j1]-tempi;
+
+                xr[j1]=xr[j1]+tempr;
+                xi[j1]=xi[j1]+tempi;
+
+            }
+            k+=2*n;
+        }
+    }
+    arg=1.0/sqrt((double)N);
+    for(i=0;i<N;i++){
+        xr[i]*=arg; xi[i]*=arg;
+    }
+
+    return 1;
 }
