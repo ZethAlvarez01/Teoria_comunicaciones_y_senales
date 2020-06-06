@@ -18,6 +18,7 @@ void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_va
 void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
 int  FFT(double *xr,double *xi,int N,int inverse);
 void swap(double *x1,double *x2,int i,int j);
+void regresar_arreglo(double *arreglo_muestras_double,int num_muestras,int bits_muestra,double *muestras_F);
 
 int main(int argc, char* argv[]){
 
@@ -101,6 +102,9 @@ int main(int argc, char* argv[]){
     double *arreglo_muestras_real=malloc(num_m_pot_2 * sizeof(double));
     double *arreglo_muestras_imag=malloc(num_m_pot_2 * sizeof(double));
 
+    double *muestras_F=malloc(num_muestras * sizeof(double));
+
+
     for (int i = 0; i < num_m_pot_2; i++){
        arreglo_muestras_real[i] = 0.0;
        arreglo_muestras_imag[i] = 0.0;
@@ -111,12 +115,18 @@ int main(int argc, char* argv[]){
    }
 
     FFT(arreglo_muestras_real,arreglo_muestras_imag,num_m_pot_2,1);
-    
-    for(int i=0;i<num_muestras;i++){ 
-        //printf("%f \n",arreglo_muestras_real[i]);
+
+    regresar_arreglo(arreglo_muestras_real,num_muestras,metadata_cabecera[4],muestras_F);
+
+    for(int i=0;i<num_muestras;i++){
+        if(muestras_F[i]>0.8){
+            printf("%f \n",muestras_F[i]);
+        }
     }
 
+    
     regresar_arreglo_double(salida,arreglo_muestras_real,num_muestras,metadata_cabecera[4]);
+
 
 
     fclose(salida);
@@ -221,8 +231,6 @@ void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arregl
     int m=0;
     int bytes=tam_muestras/8;
     int leer_n_muestras=num_muestras*bytes;
-    //double potencia=((pow(2,(tam_muestras))/2)-1);
-    
 
     while(ind<leer_n_muestras){
         switch (bytes)
@@ -258,10 +266,9 @@ void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arregl
 
 void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int bits_muestra){
    
-    double potencia=(pow(2,bits_muestra)/2)-1;
     int bytes=bits_muestra/8;
     //Arreglo de regreso para muestras de mas de 8 bits
-    unsigned char regresar[4]={0x00,0x00,0x00,0x00};
+    unsigned char regresar[2]={0x00,0x00};
     //Arreglo de regreso para muestras de 8 bits
     char regreso[1]={0x00};
 
@@ -269,24 +276,72 @@ void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int nu
     {
     case 1:
         for(int i=0;i<num_muestras;i++){
-            regreso[0]=(arreglo_muestras_double[i]*potencia)+potencia;
+            regreso[0]=(arreglo_muestras_double[i]*128.0)+128.0;
             fwrite(regreso,1,bytes,salida);
         }
         break;
     default:
         for (int i=0;i<num_muestras;i++){
-                unsigned long int aux=arreglo_muestras_double[i]*potencia;
+                unsigned long int aux=arreglo_muestras_double[i]*32768.0;
+                
+                regresar[0]=(unsigned char) (aux);
+                regresar[1]=(unsigned char) (aux>>8);
 
-                for(int j=0;j<bytes;j++){
-                    regresar[j]=(unsigned char) (aux>>(8*j)); 
-                }
-
-                fwrite(regresar,1,bytes,salida);
+                fwrite(regresar,1,2,salida);
             }   
         break;
     }    
-   
 }
+
+
+void regresar_arreglo(double *arreglo_muestras_double,int num_muestras,int bits_muestra,double *muestras_F){
+   
+    int bytes=bits_muestra/8;
+    //Arreglo de regreso para muestras de mas de 8 bits
+    unsigned char regresar[2]={0x00,0x00};
+    //Arreglo de regreso para muestras de 8 bits
+    char regreso[1]={0x00};
+
+    switch (bytes)
+    {
+    case 1:
+        for(int i=0;i<num_muestras;i++){
+            regreso[0]=(arreglo_muestras_double[i]*128.0)+128.0;
+
+            int muestra = 0x0;
+            double muestra_d=0;
+            muestra = regreso[0];
+            muestra_d = (muestra-128.0)/128.0;            
+
+            //printf("%f ",muestra_d);
+            muestras_F[i]=muestra_d;
+            //printf("%X ",regreso[0]);
+        }
+        break;
+    default:
+        for (int i=0;i<num_muestras;i++){
+                unsigned long int aux=arreglo_muestras_double[i]*32768.0;
+                
+                regresar[0]=(unsigned char) (aux);
+                regresar[1]=(unsigned char) (aux>>8);
+
+
+                short muestra = 0x0;
+                double muestra_d=0;
+                unsigned char muestra0 = regresar[0]; 
+                unsigned char muestra1 = regresar[1];
+
+                muestra = muestra0|muestra1<<8;
+                muestra_d = muestra/32768.0;
+
+                //printf("%f ",muestra_d);
+                muestras_F[i]=muestra_d;
+                //printf("%X %X ",regresar[0],regresar[1]);
+            }   
+        break;
+    }    
+}
+
 
 
 void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_valor){
