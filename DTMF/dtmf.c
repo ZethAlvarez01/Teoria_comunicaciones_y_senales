@@ -19,6 +19,7 @@ void copiar_cabecera(unsigned char *cabecera,unsigned char *copia);
 int  FFT(double *xr,double *xi,int N,int inverse);
 void swap(double *x1,double *x2,int i,int j);
 void regresar_arreglo(double *arreglo_muestras_double,int num_muestras,int bits_muestra,double *muestras_F);
+void buscar_picos(double *muestras,double *picos, int num_muestras);
 
 int main(int argc, char* argv[]){
 
@@ -118,15 +119,14 @@ int main(int argc, char* argv[]){
 
     regresar_arreglo(arreglo_muestras_real,num_muestras,metadata_cabecera[4],muestras_F);
 
-    for(int i=0;i<num_muestras;i++){
-        if(muestras_F[i]>0.8){
-            printf("%f \n",muestras_F[i]);
-        }
-    }
+    
+    double picos[2]={0.0,0.0};
 
+    buscar_picos(muestras_F,picos,num_muestras);
+
+    //printf("%f %f",picos[0],picos[1]);
     
     regresar_arreglo_double(salida,arreglo_muestras_real,num_muestras,metadata_cabecera[4]);
-
 
 
     fclose(salida);
@@ -417,6 +417,34 @@ void copiar_cabecera(unsigned char *cabecera,unsigned char *copia){
     for(int i=0;i<44;i++){
         copia[i]=cabecera[i];
     }
+}
+
+void buscar_picos(double *muestras,double *picos, int num_muestras){
+
+    double max = 0.0;
+    double max2 = 0.0;
+
+    int ind = 0;
+    int ind2 = 0;
+
+   for(int i=0;i<(num_muestras/2);i++){
+       if(muestras[i]>=max){
+           max  = muestras[i];
+           ind = i;
+       }
+   }
+
+   printf("%f %d",max, ind);
+
+    for(int i=0;i<(num_muestras/2);i++){
+       if(muestras[i]>=max2 && muestras[i] != max){
+           max2  = muestras[i];
+           ind2 = i;
+       }
+   }
+
+   printf("\n%f %d",max2, ind2);
+
 }
 
 
