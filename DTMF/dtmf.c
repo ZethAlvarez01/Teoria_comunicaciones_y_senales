@@ -1,8 +1,3 @@
-/*
-Zeth Alvarez Hernandez  2020
-Teoria de comunicaciones y señales
-*/
-
 #include<stdio.h>  
 #include<stdlib.h>
 #include<math.h>
@@ -25,71 +20,36 @@ int main(int argc, char* argv[]){
 
     unsigned char cabecera[44];
     int metadata_cabecera[7]={0,0,0,0,0,0,0}; 
-    /*
-        Metadata de la cabecera         
-        Posicion                                       Posicion
-        metadata_cabecera         Valor                cabecera       
-                    
-        [0]                      Canales               [22 - 23]          
-        [1]               Frecuencia de muestreo       [24 - 27]
-        [2]                      Byte_rate             [28 - 31]
-        [3]                     Block_align            [32 - 33] 
-        [4]          Tamaño en bytes de cada muestra   [34 - 35]
-        [5]                  Numero de muestras        [40 - 43]
-        [6]                  Tamaño del archivo        [ 4 -  7]
-    */
-    //Imprime o no imprime los datos de la cabecera
-    int imprimir=1;   // 0 = imprime ; 1 = No imprime
+    
+    int imprimir=0;  
 
-     if(argc<3){
+     if(argc<2){
 
         return 0;
-    }else if (argc>3){
+    }else if (argc>2){
 
         return 0;
     }
 
     FILE *entrada=fopen(argv[1],"rb");
-    FILE *salida=fopen(argv[2],"wb");
 
-    if (entrada==NULL || salida==NULL){
+    if (entrada==NULL){
         return 0;
     }
 
 
-    // Lee los 44 caracteres de la cabecera del archivo WAV
-    // Guarda los datos de la cabecera en int (arreglo metadatos_cabecera) para poderlos usar
     lectura_cabecera(entrada,cabecera,metadata_cabecera,imprimir);
 
-    /*
-    --> Aqui modificar la cabecera (arreglo cabecera)<--
-        Las 44 posiciones del arreglo cabecera coindicen con cada uno de los 44 bytes
-        que la componen 
-    */
-
-    //Imprime en el archivo de salida la cabecera (el arreglo con o sin modificaciones)
-    //Esta linea se puede comentar si quieres el archivo RAW
-
-    //fwrite(cabecera,sizeof(unsigned char),44,salida);
+   
 
     int num_muestras=metadata_cabecera[5];
     int num_muestras_hex=num_muestras*(metadata_cabecera[4]/8);
 
     double *arreglo_muestras_double=malloc(num_muestras * sizeof(double));
     char *arreglo_muestras_hex=malloc(num_muestras_hex * sizeof(char));
-    //Arreglo para los resultados
-    //double *resultado=malloc(num_muestras * sizeof(double));
-
-    // Normalizar el valor entre 0 y 1 dependiendo el valor mayor que se consiga despues de operar cada una de las muestras
-    //double normalizar=1; 
-
-    //Guarda las muestras en dos arreglos
-    //arreglo_muestras_double -> Guarda las muestras con su valor en double dependiendo su configuracion 8,16 o 32 bits
-    //arreglo_muestras_hex -> Guarda las muestras en su valor hexadecimal (1 byte en cada posicion del arreglo)
-    //printf("entrada, arreglo double, arreglo hex, %d byterate, %d num_muestras, %d tamaño bits muestras",metadata_cabecera[2],num_muestras,metadata_cabecera[4]);
+   
     lectura_muestras(entrada,arreglo_muestras_double,arreglo_muestras_hex,num_muestras,metadata_cabecera[4]);
 
-    //Cierro el archivo de entrada
     fclose(entrada);
 
     int pot=0;
@@ -124,16 +84,46 @@ int main(int argc, char* argv[]){
 
     buscar_picos(muestras_F,picos,num_muestras);
 
-    //printf("%f %f",picos[0],picos[1]);
+
+    if((picos[0]>0.89 && picos[0]<0.90) && (picos[1]>0.98 && picos[1]<0.99))
+    printf("0");
+    if((picos[0]>0.39 && picos[0]<0.40) && (picos[1]>0.98 && picos[1]<0.99))
+    printf("1");
+    if((picos[0]>0.90 && picos[0]<0.91) && (picos[1]>0.91 && picos[1]<0.92))
+    printf("2");
+    if((picos[0]>0.82 && picos[0]<0.83) && (picos[1]>0.88 && picos[1]<0.89))
+    printf("3");
+    if((picos[0]>0.90 && picos[0]<0.91) && (picos[1]>0.94 && picos[1]<0.95))
+    printf("4");
+    if((picos[0]>0.96 && picos[0]<0.97) && (picos[1]>0.99 && picos[1]<1))
+    printf("5");
+    if((picos[0]>0.83 && picos[0]<0.84) && (picos[1]>0.92 && picos[1]<0.93))
+    printf("6");
+    if((picos[0]>0.79 && picos[0]<0.80) && (picos[1]>0.99 && picos[1]<1))
+    printf("7");
+    if((picos[0]>0.92 && picos[0]<0.93) && (picos[1]>0.96 && picos[1]<0.97))
+    printf("8");
+    if((picos[0]>0.87 && picos[0]<0.88) && (picos[1]>0.88 && picos[1]<0.89))
+    printf("9");
+
+    if((picos[0]>0.83 && picos[0]<0.84) && (picos[1]>0.93 && picos[1]<0.94))
+    printf("A");
+    if((picos[0]>0.92 && picos[0]<0.93) && (picos[1]>0.93 && picos[1]<0.94))
+    printf("B");
+    if((picos[0]>0.92 && picos[0]<0.93) && (picos[1]>0.97 && picos[1]<0.98))
+    printf("C");
+    if((picos[0]>0.72 && picos[0]<0.73) && (picos[1]>0.89 && picos[1]<0.90))
+    printf("D");
+
+    if((picos[0]>0.86 && picos[0]<0.87) && (picos[1]>0.99 && picos[1]<1))
+    printf("#");
+    if((picos[0]>0.65 && picos[0]<0.66) && (picos[1]>0.94 && picos[1]<95))
+    printf("*");
     
-    regresar_arreglo_double(salida,arreglo_muestras_real,num_muestras,metadata_cabecera[4]);
 
-
-    fclose(salida);
     return 0;
 }
 
-///Funciones generales para tratar el archivo
 
 int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecera,int flg){
     
@@ -144,7 +134,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
         posicion_archivo++;
     }
 
-    //Tamaño archivo
+
     int ind=7;
     long unsigned int tamano_archivo=0x0000;
     while(ind>=4){
@@ -153,7 +143,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     }
     
 
-    //Canales que trabaja el archivo
     ind=22;
     char b1=cabecera[ind];
     short canales=cabecera[++ind];
@@ -161,7 +150,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     canales+=b1;
     metadata_cabecera[0]=canales;
     
-    //Frecuencia de muestreo
     ind=27;
     long unsigned int frecuencia_muestreo=0x0000;
     while(ind>=24){
@@ -170,7 +158,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     }
     metadata_cabecera[1]=frecuencia_muestreo;
 
-    //Tasa de bytes
     ind=31;
     long unsigned int byte_rate=0x0000;
     while(ind>=28){
@@ -179,7 +166,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     }
     metadata_cabecera[2]=byte_rate;
 
-    // Block align
     ind=32;
     b1=cabecera[ind];
     short block_align=cabecera[++ind];
@@ -187,7 +173,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     block_align+=b1;
     metadata_cabecera[3]=block_align;
 
-    // Bytes per samble (Tamaño de las muestras)
     ind=34;
     b1=cabecera[ind];
     short tamano_muestras=cabecera[++ind];
@@ -197,7 +182,6 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
 
     int bytes_x_muestra=tamano_muestras/8;
 
-    //Numero de  muestras
     ind=43;
     unsigned long int num_muestras=0x0000;
     
@@ -210,15 +194,7 @@ int lectura_cabecera(FILE *entrada,unsigned char *cabecera,int *metadata_cabecer
     metadata_cabecera[6]=tamano_archivo;
 
     if(flg==1){
-        printf("\t\n->Archivo de ENTRADA\n");
-        printf("\t\nTamano del archivo:  %ld bytes",tamano_archivo);
-        printf("\t\nCanales: %d",canales);
-        printf("\t\nFrecuencia de muestreo (Sample rate): %ld Hz",frecuencia_muestreo); 
-        printf("\t\nTasa de bytes (Byte rate): %ld",byte_rate);
-        printf("\t\nBlock Align: %d",block_align);
-        printf("\t\nTamano de las muestras: %d bytes",tamano_muestras);
-        printf("\t\nNumero de muestras: %ld ",num_muestras/bytes_x_muestra);
-        printf("\n\n");    
+ 
     }
 
     return 0;
@@ -267,9 +243,9 @@ void lectura_muestras(FILE *entrada,double *arreglo_muestras_double,char *arregl
 void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int num_muestras,int bits_muestra){
    
     int bytes=bits_muestra/8;
-    //Arreglo de regreso para muestras de mas de 8 bits
+
     unsigned char regresar[2]={0x00,0x00};
-    //Arreglo de regreso para muestras de 8 bits
+
     char regreso[1]={0x00};
 
     switch (bytes)
@@ -297,9 +273,9 @@ void regresar_arreglo_double(FILE* salida,double *arreglo_muestras_double,int nu
 void regresar_arreglo(double *arreglo_muestras_double,int num_muestras,int bits_muestra,double *muestras_F){
    
     int bytes=bits_muestra/8;
-    //Arreglo de regreso para muestras de mas de 8 bits
+
     unsigned char regresar[2]={0x00,0x00};
-    //Arreglo de regreso para muestras de 8 bits
+
     char regreso[1]={0x00};
 
     switch (bytes)
@@ -313,9 +289,9 @@ void regresar_arreglo(double *arreglo_muestras_double,int num_muestras,int bits_
             muestra = regreso[0];
             muestra_d = (muestra-128.0)/128.0;            
 
-            //printf("%f ",muestra_d);
+
             muestras_F[i]=muestra_d;
-            //printf("%X ",regreso[0]);
+
         }
         break;
     default:
@@ -334,9 +310,8 @@ void regresar_arreglo(double *arreglo_muestras_double,int num_muestras,int bits_
                 muestra = muestra0|muestra1<<8;
                 muestra_d = muestra/32768.0;
 
-                //printf("%f ",muestra_d);
                 muestras_F[i]=muestra_d;
-                //printf("%X %X ",regresar[0],regresar[1]);
+
             }   
         break;
     }    
@@ -349,7 +324,7 @@ void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_va
    unsigned long int aux=nuevo_valor;
    unsigned char regresar[4]={0x00,0x00,0x00,0x00};
    switch (pos){
-        // 16 bits
+
         case 0:
         case 3:
         case 4:
@@ -374,7 +349,6 @@ void editar_cabecera(unsigned char *cabecera,int pos, unsigned long int nuevo_va
                 }
             break;
 
-        // 32 bits
         case 1:
         case 2: 
         case 5:
@@ -434,16 +408,30 @@ void buscar_picos(double *muestras,double *picos, int num_muestras){
        }
    }
 
-   printf("%f %d",max, ind);
-
-    for(int i=0;i<(num_muestras/2);i++){
-       if(muestras[i]>=max2 && muestras[i] != max){
+    for(int i=0;i<ind-50;i++){
+      if(muestras[i]>=max2){
            max2  = muestras[i];
            ind2 = i;
        }
    }
 
-   printf("\n%f %d",max2, ind2);
+   for(int i=(ind+50);i<(num_muestras/2);i++){
+      if(muestras[i]>=max2){
+           max2  = muestras[i];
+           ind = i;
+       }
+   }
+
+    if(ind<ind2){
+        picos[0]=max;
+        picos[1]=max2;
+
+    }else{
+        picos[0]=max2;
+        picos[1]=max;
+
+    }
+
 
 }
 
